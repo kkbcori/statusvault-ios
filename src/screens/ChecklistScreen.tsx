@@ -4,7 +4,7 @@
 
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Platform, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme';
@@ -29,6 +29,8 @@ export const ChecklistScreen: React.FC = () => {
   const dialog = useDialog();
   const [showAdd,   setShowAdd]   = useState(false);
   const [expanded,  setExpanded]  = useState<string | null>(null);
+  const [searchOpen,  setSearchOpen]  = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const activeIds = checklists.map((c) => c.templateId);
 
@@ -145,36 +147,88 @@ export const ChecklistScreen: React.FC = () => {
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Checklist</Text>
-              <TouchableOpacity onPress={() => setShowAdd(false)}>
-                <Ionicons name="close" size={22} color="rgba(240,244,255,0.60)" />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={styles.modalIconBtn}
+                  onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setSearchQuery(''); }}
+                  accessibilityLabel="Search checklists"
+                >
+                  <Ionicons name={searchOpen ? 'close-outline' : 'search-outline'} size={18} color="#6FAFF2" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => { setShowAdd(false); setSearchOpen(false); setSearchQuery(''); }}>
+                  <Ionicons name="close" size={22} color="rgba(240,244,255,0.60)" />
+                </TouchableOpacity>
+              </View>
             </View>
-            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
-              {CHECKLIST_TEMPLATES.map((t) => {
-                const added = activeIds.includes(t.id);
-                return (
-                  <TouchableOpacity
-                    key={t.id}
-                    style={[styles.templateRow, added && styles.templateRowAdded]}
-                    onPress={() => {
-                      if (added) return;
-                      addChecklist(t.id); setShowAdd(false);
-                    }}
-                    activeOpacity={added ? 1 : 0.75}
-                  >
-                    <Text style={{ fontSize: 22, marginRight: 12 }}>{t.icon}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.templateLabel}>{t.label}</Text>
-                      <Text style={styles.templateDesc}>{t.description}</Text>
-                      <Text style={styles.templateCount}>{t.items.length} steps</Text>
-                    </View>
-                    {added
-                      ? <View style={styles.addedBadge}><Text style={styles.addedText}>Added</Text></View>
-                      : <Ionicons name="add-circle-outline" size={22} color={colors.primaryLight} />
-                    }
+            {searchOpen && (
+              <View style={styles.modalSearchWrap}>
+                <Ionicons name="search" size={16} color="rgba(240,244,255,0.45)" />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder="Search checklists"
+                  placeholderTextColor="rgba(240,244,255,0.35)"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color="rgba(240,244,255,0.45)" />
                   </TouchableOpacity>
+                )}
+              </View>
+            )}
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+              <View style={styles.countryBanner}>
+                <Text style={styles.countryBannerFlag}>🇺🇸</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.countryBannerTitle}>United States</Text>
+                  <Text style={styles.countryBannerSub}>Immigration process checklists</Text>
+                </View>
+              </View>
+              {(() => {
+                const q = searchQuery.trim().toLowerCase();
+                const filtered = q === '' ? CHECKLIST_TEMPLATES : CHECKLIST_TEMPLATES.filter((t) =>
+                  t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
                 );
-              })}
+                if (filtered.length === 0) {
+                  return (
+                    <View style={{ padding: 32, alignItems: 'center' }}>
+                      <Ionicons name="search-outline" size={32} color="rgba(240,244,255,0.30)" />
+                      <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', marginTop: 12, textAlign: 'center' }}>
+                        No checklists match "{searchQuery}"
+                      </Text>
+                    </View>
+                  );
+                }
+                return filtered.map((t) => {
+                  const added = activeIds.includes(t.id);
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={[styles.templateRow, added && styles.templateRowAdded]}
+                      onPress={() => {
+                        if (added) return;
+                        addChecklist(t.id); setShowAdd(false); setSearchOpen(false); setSearchQuery('');
+                      }}
+                      activeOpacity={added ? 1 : 0.75}
+                    >
+                      <Text style={{ fontSize: 22, marginRight: 12 }}>{t.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.templateLabel}>{t.label}</Text>
+                        <Text style={styles.templateDesc}>{t.description}</Text>
+                        <Text style={styles.templateCount}>{t.items.length} steps</Text>
+                      </View>
+                      {added
+                        ? <View style={styles.addedBadge}><Text style={styles.addedText}>Added</Text></View>
+                        : <Ionicons name="add-circle-outline" size={22} color={colors.primaryLight} />
+                      }
+                    </TouchableOpacity>
+                  );
+                });
+              })()}
             </ScrollView>
           </View>
         </View>
@@ -244,7 +298,10 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(3,8,18,0.75)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modal: {
     backgroundColor: '#0C1A34',
-    borderRadius: 18, width: '100%', maxWidth: 480, maxHeight: '85%' as any,
+    borderRadius: 18, width: '100%', maxWidth: 480,
+    // Native iOS/Android: explicit `height` so the inner ScrollView (flex: 1) has space to grow.
+    // Web: `maxHeight` works fine because CSS flexbox grows the parent to its bound.
+    ...(Platform.OS === 'web' ? { maxHeight: '85%' as any } : { height: '80%' as any }),
     overflow: 'hidden',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     display: 'flex' as any, flexDirection: 'column',
@@ -252,6 +309,13 @@ const styles = StyleSheet.create({
   } as any,
   modalHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   modalTitle:    { fontSize: 16, fontFamily: 'Inter_700Bold', color: '#F0F4FF' },
+  modalIconBtn:  { width: 32, height: 32, borderRadius: 9, backgroundColor: 'rgba(59,139,232,0.15)', borderWidth: 1, borderColor: 'rgba(111,175,242,0.32)', alignItems: 'center', justifyContent: 'center' },
+  modalSearchWrap:  { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  modalSearchInput: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: '#F0F4FF', paddingVertical: 6, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  countryBanner:    { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12, marginTop: 12, marginHorizontal: 12, backgroundColor: 'rgba(59,139,232,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(111,175,242,0.18)' },
+  countryBannerFlag:  { fontSize: 24 },
+  countryBannerTitle: { fontSize: 13, fontFamily: 'Inter_700Bold', color: '#F0F4FF', letterSpacing: 0.3 },
+  countryBannerSub:   { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.55)', marginTop: 1 },
   templateRow:   { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   templateRowAdded: { backgroundColor: 'rgba(76,217,138,0.06)' },
   templateLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#F0F4FF' },

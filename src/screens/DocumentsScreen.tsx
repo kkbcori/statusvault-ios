@@ -51,6 +51,9 @@ export const DocumentsScreen: React.FC = () => {
   const [docNumber,       setDocNumber]       = useState('');
   const [filterCategory,  setFilterCategory]  = useState<DocumentCategory | 'all'>('all');
   const [editingDoc,      setEditingDoc]      = useState<UserDocument | null>(null);
+  // Search bar inside the add-modal — toggled by the search icon in the modal header.
+  const [searchOpen,      setSearchOpen]      = useState(false);
+  const [searchQuery,     setSearchQuery]     = useState('');
 
   const templatesByCategory = getTemplatesByCategory();
   const remaining = getRemainingFreeSlots();
@@ -65,6 +68,7 @@ export const DocumentsScreen: React.FC = () => {
     setAddStep('type'); setSelectedTemplate(null);
     setExpiryDate(new Date()); setNotes(''); setShowDatePicker(false);
     setEditingDoc(null);
+    setSearchOpen(false); setSearchQuery('');
   };
 
   const isGuestMode      = useStore((s) => s.isGuestMode);
@@ -230,20 +234,65 @@ export const DocumentsScreen: React.FC = () => {
                 <Text style={styles.modalBack}>{addStep === 'date' ? '← Back' : 'Cancel'}</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{editingDoc ? 'Edit Document' : addStep === 'type' ? 'Select Document' : 'Set Expiry Date'}</Text>
-              <View style={{ width: 60 }} />
+              {addStep === 'type' && !editingDoc ? (
+                <TouchableOpacity
+                  style={styles.modalIconBtn}
+                  onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setSearchQuery(''); }}
+                  accessibilityLabel="Search documents"
+                >
+                  <Ionicons name={searchOpen ? 'close-outline' : 'search-outline'} size={20} color="#6FAFF2" />
+                </TouchableOpacity>
+              ) : (
+                <View style={{ width: 60 }} />
+              )}
             </View>
+
+            {addStep === 'type' && searchOpen && (
+              <View style={styles.modalSearchWrap}>
+                <Ionicons name="search" size={16} color="rgba(240,244,255,0.45)" />
+                <TextInput
+                  style={styles.modalSearchInput}
+                  placeholder="Search visa, passport, EAD, etc."
+                  placeholderTextColor="rgba(240,244,255,0.35)"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Ionicons name="close-circle" size={18} color="rgba(240,244,255,0.45)" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
 
             {addStep === 'type' && (
               <FlatList style={{ flex: 1 }}
                 data={Object.entries(templatesByCategory)}
                 keyExtractor={([c]) => c}
                 showsVerticalScrollIndicator={true}
+                ListHeaderComponent={(
+                  <View style={styles.countryBanner}>
+                    <Text style={styles.countryBannerFlag}>🇺🇸</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.countryBannerTitle}>United States</Text>
+                      <Text style={styles.countryBannerSub}>Immigration documents</Text>
+                    </View>
+                  </View>
+                )}
                 renderItem={({ item: [category, templates] }) => {
-                  if (templates.length === 0) return null;
+                  // Filter by search query (matches label or description, case-insensitive)
+                  const q = searchQuery.trim().toLowerCase();
+                  const visible = q === '' ? templates : templates.filter((t) =>
+                    t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+                  );
+                  if (visible.length === 0) return null;
                   return (
                     <View style={styles.templateSection}>
                       <Text style={styles.templateSectionTitle}>{CATEGORY_LABELS[category as DocumentCategory]}</Text>
-                      {templates.map((tmpl) => {
+                      {visible.map((tmpl) => {
                         const alreadyAdded = documents.some((d) => d.templateId === tmpl.id);
                         return (
                           <TouchableOpacity
@@ -266,6 +315,14 @@ export const DocumentsScreen: React.FC = () => {
                     </View>
                   );
                 }}
+                ListEmptyComponent={searchQuery.trim() !== '' ? (
+                  <View style={{ padding: 32, alignItems: 'center' }}>
+                    <Ionicons name="search-outline" size={32} color="rgba(240,244,255,0.30)" />
+                    <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', marginTop: 12, textAlign: 'center' }}>
+                      No documents match "{searchQuery}"
+                    </Text>
+                  </View>
+                ) : null}
               />
             )}
 
@@ -499,6 +556,13 @@ const styles = StyleSheet.create({
   modalHeader:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   modalBack:          { ...typography.bodySemibold, color: '#6FAFF2', fontSize: 14 },
   modalTitle:         { ...typography.h3, color: '#F0F4FF', fontSize: 16 },
+  modalIconBtn:       { width: 36, height: 36, borderRadius: 10, backgroundColor: 'rgba(59,139,232,0.15)', borderWidth: 1, borderColor: 'rgba(111,175,242,0.32)', alignItems: 'center', justifyContent: 'center' },
+  modalSearchWrap:    { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: spacing.lg, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.04)', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
+  modalSearchInput:   { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: '#F0F4FF', paddingVertical: 6, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}) },
+  countryBanner:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: spacing.lg, paddingVertical: 14, marginTop: spacing.md, marginHorizontal: spacing.md, backgroundColor: 'rgba(59,139,232,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(111,175,242,0.18)' },
+  countryBannerFlag:  { fontSize: 24 },
+  countryBannerTitle: { fontSize: 13, fontFamily: 'Inter_700Bold', color: '#F0F4FF', letterSpacing: 0.3 },
+  countryBannerSub:   { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.55)', marginTop: 1 },
 
   templateSection:    { paddingTop: spacing.lg },
   templateSectionTitle:{ ...typography.micro, color: 'rgba(240,244,255,0.45)', letterSpacing: 1.2, paddingHorizontal: spacing.screen, marginBottom: spacing.sm },

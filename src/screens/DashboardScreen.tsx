@@ -990,7 +990,10 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(3,8,18,0.75)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   modal: {
     backgroundColor: '#0C1A34',
-    borderRadius: 18, width: '100%', maxWidth: 480, maxHeight: '85%' as any,
+    borderRadius: 18, width: '100%', maxWidth: 480,
+    // Native iOS/Android: use explicit `height` so inner ScrollView (flex: 1) has space.
+    // Web: `maxHeight` works correctly because CSS handles it.
+    ...(Platform.OS === 'web' ? { maxHeight: '85%' as any } : { height: '80%' as any }),
     overflow: 'hidden',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
     ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any) : {}),

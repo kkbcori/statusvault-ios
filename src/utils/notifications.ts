@@ -63,8 +63,6 @@ export const configureNotifications = async () => {
 
   // Silently request notification permission on first launch.
   // iOS only shows the system prompt once per install — subsequent launches are no-ops.
-  // No alert / no toast on decline — the explicit "Enable alerts" flow in Settings handles
-  // the loud re-prompt path. This just ensures the OS permission gate fires naturally.
   try {
     const { status: existing } = await Notifications.getPermissionsAsync();
     if (existing !== 'granted') {

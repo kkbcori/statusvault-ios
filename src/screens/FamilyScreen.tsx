@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   editMemberBtn:    { flexDirection: 'row', alignItems: 'center', gap: 4 },
   editMemberText:   { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#6FAFF2' },
   overlay:          { flex: 1, backgroundColor: 'rgba(3,8,18,0.80)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  modal:            { backgroundColor: '#0C1A34', borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '88%' as any, overflow: 'hidden', display: 'flex' as any, flexDirection: 'column', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...shadows.lg } as any,
+  modal:            { backgroundColor: '#0C1A34', borderRadius: 16, width: '100%', maxWidth: 480, ...(Platform.OS === 'web' ? { maxHeight: '88%' as any } : { height: '85%' as any }), overflow: 'hidden', display: 'flex' as any, flexDirection: 'column', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...shadows.lg } as any,
   modalHeader:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.xl, paddingBottom: 0 },
   modalTitle:       { fontSize: 16, fontFamily: 'Inter_700Bold', color: colors.text1 },
   fieldLabel:       { ...typography.captionBold, color: colors.text2, marginBottom: 6, marginTop: 4 },
