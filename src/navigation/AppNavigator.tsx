@@ -578,6 +578,15 @@ export const AppNavigator: React.FC = () => {
             border: colors.border,
             notification: colors.gold,
           } as any,
+          // React Navigation v7 requires `fonts` on the theme. Without this,
+          // accessing `theme.fonts.regular` (used internally by headers/tabs)
+          // throws "Cannot read property 'regular' of undefined" on native.
+          fonts: {
+            regular: { fontFamily: 'Inter_400Regular', fontWeight: '400' as any },
+            medium:  { fontFamily: 'Inter_500Medium',  fontWeight: '500' as any },
+            bold:    { fontFamily: 'Inter_700Bold',    fontWeight: '700' as any },
+            heavy:   { fontFamily: 'Inter_800ExtraBold', fontWeight: '800' as any },
+          },
         } as any}
       >
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right', contentStyle: { backgroundColor: colors.backgroundDeep } }}>
