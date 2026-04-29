@@ -20,6 +20,7 @@ import { DOCUMENT_TEMPLATES } from '../utils/templates';
 import { UserDocument } from '../types';
 import { useDialog } from '../components/ConfirmDialog';
 import { AnimatedEmptyIcon } from '../components/AnimatedEmptyIcon';
+import { NotificationBell } from '../components/NotificationBell';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 
 // Fixed card height — all tall dashboard cards share this
@@ -348,6 +349,20 @@ export const DashboardScreen: React.FC = () => {
                   <Text style={styles.mobileTitleVault}>Vault</Text>
                 </View>
                 <Text style={styles.mobileSub}>Immigration Tracker</Text>
+              </View>
+              {/* Top-right action cluster: search + notification bell.
+                  Bell is self-contained — it opens its own modal panel.
+                  Search icon delegates to the global SearchModal via openSearch() store action. */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <TouchableOpacity
+                  style={styles.heroIconBtn}
+                  onPress={() => useStore.getState().openSearch()}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Search"
+                >
+                  <Ionicons name="search" size={17} color="rgba(240,244,255,0.78)" />
+                </TouchableOpacity>
+                <NotificationBell />
               </View>
             </View>
 
@@ -873,6 +888,12 @@ const styles = StyleSheet.create({
   mobileTitleStatus: { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 },
   mobileTitleVault:  { fontSize: 20, fontFamily: 'Inter_800ExtraBold', color: colors.primaryLight, letterSpacing: -0.5 },
   mobileSub:         { fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', marginTop: 2 },
+  heroIconBtn:       {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+    alignItems: 'center', justifyContent: 'center',
+  },
   miniStat: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.06)',

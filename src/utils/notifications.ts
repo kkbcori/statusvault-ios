@@ -260,3 +260,28 @@ const getNotificationBody = (doc: UserDocument, alertDay: number): string => {
   }
   return `Your ${label} expires in ${alertDay} days. Mark this on your calendar and begin planning ahead.`;
 };
+
+/**
+ * Clear the iOS app icon badge count (the red number on the icon).
+ * Called on app foreground and when the user updates a doc — both signal
+ * the user has acknowledged any pending alerts.
+ *
+ * Also dismisses any delivered notifications still sitting in the iOS
+ * Notification Center, which is the actual source of the lingering badge.
+ *
+ * Safe no-op on web; never throws.
+ */
+export const clearAppBadge = async (): Promise<void> => {
+  if (Platform.OS === 'web') return;
+  try {
+    await Notifications.setBadgeCountAsync(0);
+  } catch {
+    // ignore — badge clearing is best-effort
+  }
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+  } catch {
+    // ignore
+  }
+};
+

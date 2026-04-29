@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Modal }
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../store';
 import { calculateDaysRemaining } from '../utils/dates';
+import { clearAppBadge } from '../utils/notifications';
 
 export interface AppNotification {
   id: string; docId: string; docLabel: string; docIcon: string;
@@ -70,6 +71,8 @@ export const NotificationBell: React.FC = () => {
         setPos({ top: r.bottom + 6, right: winWidth - r.right });
       }
     }
+    // Opening the panel = user acknowledging alerts → clear iOS app icon badge
+    if (!open) clearAppBadge();
     setOpen(v => !v);
   };
 
@@ -77,8 +80,8 @@ export const NotificationBell: React.FC = () => {
   const markRead   = (id: string) => setNotifs(notifications.map(n => n.id === id ? { ...n, read: true }  : n));
   const markUnread = (id: string) => setNotifs(notifications.map(n => n.id === id ? { ...n, read: false } : n));
   const remove     = (id: string) => setNotifs(notifications.filter(n => n.id !== id));
-  const markAll    = ()           => setNotifs(notifications.map(n => ({ ...n, read: true })));
-  const clearAll   = ()           => setNotifs([]);
+  const markAll    = ()           => { setNotifs(notifications.map(n => ({ ...n, read: true }))); clearAppBadge(); };
+  const clearAll   = ()           => { setNotifs([]); clearAppBadge(); };
 
   return (
     <View>

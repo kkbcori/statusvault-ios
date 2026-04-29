@@ -11,7 +11,7 @@ import {
   Inter_700Bold, Inter_800ExtraBold, Inter_900Black,
 } from '@expo-google-fonts/inter';
 import { AppNavigator } from './src/navigation';
-import { configureNotifications } from './src/utils/notifications';
+import { configureNotifications, clearAppBadge } from './src/utils/notifications';
 import { useStore } from './src/store';
 import { colors } from './src/theme';
 import { PinLockScreen } from './src/components/PinLockScreen';
@@ -197,7 +197,14 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (Platform.OS !== 'web') configureNotifications();
+    if (Platform.OS !== 'web') {
+      configureNotifications();
+      // Clear any iOS app icon badge that lingered from a previous session.
+      // expo-notifications increments the badge whenever a scheduled notification
+      // fires; iOS does NOT auto-clear it when the user opens the app, so we have
+      // to do it explicitly each time.
+      clearAppBadge();
+    }
     useStore.getState().autoIncrementCounters();
     // Hard timeout — never let the app stay on loading screen
     const authTimeout = setTimeout(() => setAuthReady(true), 3000);
@@ -209,13 +216,15 @@ export default function App() {
       }
     }, 1000);
 
-    // Native PIN re-lock: re-lock the app when it comes back to foreground.
+    // Native PIN re-lock + badge clear: when the app returns to foreground.
     let appStateSub: any = null;
     if (Platform.OS !== 'web') {
       const { AppState } = require('react-native');
       let lastState = AppState.currentState;
       appStateSub = AppState.addEventListener('change', (nextState: string) => {
         if (lastState !== 'active' && nextState === 'active') {
+          // Always clear the badge — opening the app means user has acknowledged alerts
+          clearAppBadge();
           if (useStore.getState().pinEnabled) {
             setIsLocked(true);
           }
