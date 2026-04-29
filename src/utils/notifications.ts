@@ -130,11 +130,17 @@ export const scheduleDocumentNotifications = async (
   const now = dayjs();
   const expiry = dayjs(doc.expiryDate);
 
+  // Track which alert windows have already passed so we only fire ONE
+  // catch-up notification (for the most urgent missed window). Otherwise a
+  // doc expiring in 5 days would dump 4 notifications (180d, 90d, 60d, 30d
+  // all already passed) onto the user at once — too noisy.
+  const passedWindows: number[] = [];
+
   for (const alertDay of doc.alertDays) {
     const triggerDate = expiry.subtract(alertDay, 'day').hour(9).minute(0).second(0);
 
-    // Only schedule future notifications
     if (triggerDate.isAfter(now)) {
+      // Future trigger — schedule normally
       try {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
@@ -168,6 +174,48 @@ export const scheduleDocumentNotifications = async (
       } catch (error) {
         console.warn(`Failed to schedule notification for ${doc.label} at ${alertDay}d:`, error);
       }
+    } else {
+      // Past trigger — collect for catch-up below
+      passedWindows.push(alertDay);
+    }
+  }
+
+  // Fire ONE catch-up notification for the most urgent passed window
+  // (smallest alertDay = most urgent). Trigger ~5 seconds out so iOS
+  // delivers it as a normal notification rather than racing the JS thread.
+  if (passedWindows.length > 0) {
+    const mostUrgent = Math.min(...passedWindows);
+    const daysRemaining = Math.max(0, expiry.diff(now, 'day'));
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: getNotificationTitle(doc, daysRemaining > 0 ? daysRemaining : mostUrgent),
+          body: getNotificationBody(doc, daysRemaining > 0 ? daysRemaining : mostUrgent),
+          subtitle: getNotificationSubtitle(mostUrgent),
+          data: {
+            documentId: doc.id,
+            alertDay: mostUrgent,
+            type: 'deadline_reminder_catchup',
+          },
+          sound: 'default',
+          badge: 1,
+          ...(Platform.OS === 'android' && {
+            channelId: getChannel(mostUrgent),
+            color: mostUrgent <= 15 ? '#E63946' : mostUrgent <= 60 ? '#F4A261' : '#2E5AAC',
+            sticky: mostUrgent <= 15,
+          }),
+          ...(Platform.OS === 'ios' && {
+            categoryIdentifier: 'deadline_alert',
+          }),
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 5,
+        },
+      });
+      notificationIds.push(id);
+    } catch (error) {
+      console.warn(`Failed to schedule catch-up notification for ${doc.label}:`, error);
     }
   }
 
