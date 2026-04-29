@@ -10,6 +10,7 @@
 
 import { Linking, Platform } from 'react-native';
 import { supabase } from './supabase';
+import { dlog, dwarn } from './debugLog';
 
 /**
  * Sleep helper for retry delays.
@@ -35,26 +36,26 @@ async function hasSession(): Promise<boolean> {
  */
 async function exchangeCodeWithRetry(code: string): Promise<{ ok: boolean; error?: string }> {
   for (let attempt = 1; attempt <= 2; attempt++) {
-    console.log(`[deepLink] exchangeCodeForSession attempt ${attempt}/2`);
+    dlog(`[deepLink] exchangeCodeForSession attempt ${attempt}/2`);
     try {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (!error) {
-        console.log('[deepLink] exchangeCodeForSession returned without error');
+        dlog('[deepLink] exchangeCodeForSession returned without error');
         // Verify session actually landed
         const ok = await hasSession();
         if (ok) {
-          console.log('[deepLink] session verified ✓');
+          dlog('[deepLink] session verified ✓');
           return { ok: true };
         }
-        console.warn('[deepLink] exchange returned no error but no session in storage');
+        dwarn('[deepLink] exchange returned no error but no session in storage');
       } else {
-        console.warn(`[deepLink] exchange attempt ${attempt} error:`, error.message);
+        dwarn(`[deepLink] exchange attempt ${attempt} error:`, error.message);
       }
     } catch (e: any) {
-      console.warn(`[deepLink] exchange attempt ${attempt} threw:`, e?.message ?? e);
+      dwarn(`[deepLink] exchange attempt ${attempt} threw:`, e?.message ?? e);
     }
     if (attempt === 1) {
-      console.log('[deepLink] waiting 500ms before retry...');
+      dlog('[deepLink] waiting 500ms before retry...');
       await sleep(500);
     }
   }
@@ -66,7 +67,7 @@ async function exchangeCodeWithRetry(code: string): Promise<{ ok: boolean; error
  */
 async function setSessionWithRetry(accessToken: string, refreshToken: string): Promise<{ ok: boolean; error?: string }> {
   for (let attempt = 1; attempt <= 2; attempt++) {
-    console.log(`[deepLink] setSession attempt ${attempt}/2`);
+    dlog(`[deepLink] setSession attempt ${attempt}/2`);
     try {
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
@@ -75,14 +76,14 @@ async function setSessionWithRetry(accessToken: string, refreshToken: string): P
       if (!error) {
         const ok = await hasSession();
         if (ok) {
-          console.log('[deepLink] session verified ✓');
+          dlog('[deepLink] session verified ✓');
           return { ok: true };
         }
       } else {
-        console.warn(`[deepLink] setSession attempt ${attempt} error:`, error.message);
+        dwarn(`[deepLink] setSession attempt ${attempt} error:`, error.message);
       }
     } catch (e: any) {
-      console.warn(`[deepLink] setSession attempt ${attempt} threw:`, e?.message ?? e);
+      dwarn(`[deepLink] setSession attempt ${attempt} threw:`, e?.message ?? e);
     }
     if (attempt === 1) await sleep(500);
   }
@@ -93,10 +94,10 @@ async function setSessionWithRetry(accessToken: string, refreshToken: string): P
  * Parse a statusvault:// auth URL and complete the Supabase session.
  */
 async function handleAuthUrl(url: string): Promise<boolean> {
-  console.log('[deepLink] received URL:', url);
+  dlog('[deepLink] received URL:', url);
 
   if (!url || !url.includes('://auth')) {
-    console.log('[deepLink] URL does not match ://auth pattern, ignoring');
+    dlog('[deepLink] URL does not match ://auth pattern, ignoring');
     return false;
   }
 
@@ -125,7 +126,7 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     }
 
     if (allParams.toString() === '') {
-      console.log('[deepLink] URL has no params');
+      dlog('[deepLink] URL has no params');
       return false;
     }
 
@@ -133,7 +134,7 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     const errorCode = allParams.get('error');
     const errorDesc = allParams.get('error_description');
     if (errorCode) {
-      console.warn(`[deepLink] auth callback contained error: ${errorCode} — ${errorDesc}`);
+      dwarn(`[deepLink] auth callback contained error: ${errorCode} — ${errorDesc}`);
       // Don't abort — fall through, sometimes Supabase includes both an error and tokens
     }
 
@@ -141,18 +142,18 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     const accessToken  = allParams.get('access_token');
     const refreshToken = allParams.get('refresh_token');
     if (accessToken && refreshToken) {
-      console.log('[deepLink] handling implicit flow');
+      dlog('[deepLink] handling implicit flow');
       const result = await setSessionWithRetry(accessToken, refreshToken);
-      if (!result.ok) console.warn('[deepLink] implicit flow failed:', result.error);
+      if (!result.ok) dwarn('[deepLink] implicit flow failed:', result.error);
       return true;
     }
 
     // ─── Path 2: PKCE flow (?code=) ────────────────────────────────────
     const code = allParams.get('code');
     if (code) {
-      console.log('[deepLink] handling PKCE flow with code:', code.substring(0, 8) + '...');
+      dlog('[deepLink] handling PKCE flow with code:', code.substring(0, 8) + '...');
       const result = await exchangeCodeWithRetry(code);
-      if (!result.ok) console.warn('[deepLink] PKCE flow failed:', result.error);
+      if (!result.ok) dwarn('[deepLink] PKCE flow failed:', result.error);
       return true;
     }
 
@@ -160,17 +161,17 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     const tokenHash = allParams.get('token_hash');
     const type      = allParams.get('type');
     if (tokenHash && (type === 'signup' || type === 'email' || type === 'magiclink' || type === 'recovery')) {
-      console.log('[deepLink] handling legacy OTP flow');
+      dlog('[deepLink] handling legacy OTP flow');
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any });
-      if (error) console.warn('[deepLink] verifyOtp failed:', error.message);
-      else console.log('[deepLink] verifyOtp succeeded');
+      if (error) dwarn('[deepLink] verifyOtp failed:', error.message);
+      else dlog('[deepLink] verifyOtp succeeded');
       return true;
     }
 
-    console.log('[deepLink] URL had no recognizable auth params:', Array.from(allParams.keys()).join(', '));
+    dlog('[deepLink] URL had no recognizable auth params:', Array.from(allParams.keys()).join(', '));
     return true;
   } catch (e: any) {
-    console.warn('[deepLink] handler threw:', e?.message ?? e);
+    dwarn('[deepLink] handler threw:', e?.message ?? e);
     return false;
   }
 }
@@ -181,23 +182,23 @@ async function handleAuthUrl(url: string): Promise<boolean> {
 export function registerDeepLinkHandler(): () => void {
   if (Platform.OS === 'web') return () => {};
 
-  console.log('[deepLink] registering listeners');
+  dlog('[deepLink] registering listeners');
 
   // Cold start — URL was queued before app launched
   Linking.getInitialURL().then((url) => {
     if (url) {
-      console.log('[deepLink] cold start with initial URL');
+      dlog('[deepLink] cold start with initial URL');
       handleAuthUrl(url);
     } else {
-      console.log('[deepLink] cold start with no initial URL (normal launch)');
+      dlog('[deepLink] cold start with no initial URL (normal launch)');
     }
   }).catch((e) => {
-    console.warn('[deepLink] getInitialURL failed:', e?.message ?? e);
+    dwarn('[deepLink] getInitialURL failed:', e?.message ?? e);
   });
 
   // Warm start — URL arrives while app is running
   const sub = Linking.addEventListener('url', ({ url }) => {
-    console.log('[deepLink] warm event received');
+    dlog('[deepLink] warm event received');
     handleAuthUrl(url);
   });
 

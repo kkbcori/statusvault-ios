@@ -22,6 +22,7 @@ import { useDialog } from '../components/ConfirmDialog';
 import { AnimatedEmptyIcon } from '../components/AnimatedEmptyIcon';
 import { NotificationBell } from '../components/NotificationBell';
 import { PremiumUpsellBanner } from '../components/PremiumUpsellBanner';
+import { DebugScreen } from './DebugScreen';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 
 // Fixed card height — all tall dashboard cards share this
@@ -190,6 +191,9 @@ export const DashboardScreen: React.FC = () => {
 
   React.useEffect(() => { autoIncrementCounters(); }, []);
 
+  // Debug screen — accessible via long-press on the StatusVault title
+  const [showDebug, setShowDebug] = React.useState(false);
+
   // Entrance animations
   const stats1Anim = useEntrance(60);
   const stats2Anim = useEntrance(120);
@@ -344,13 +348,18 @@ export const DashboardScreen: React.FC = () => {
               <View style={styles.mobileHeroLogoWrap}>
                 <Image source={require('../../assets/logo-transparent.png')} style={{ width: 36, height: 36 }} resizeMode="contain" />
               </View>
-              <View style={{ flex: 1 }}>
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                activeOpacity={1}
+                onLongPress={() => setShowDebug(true)}
+                delayLongPress={1500}
+              >
                 <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                   <Text style={styles.mobileTitleStatus}>Status</Text>
                   <Text style={styles.mobileTitleVault}>Vault</Text>
                 </View>
                 <Text style={styles.mobileSub}>Immigration Tracker</Text>
-              </View>
+              </TouchableOpacity>
               {/* Top-right action cluster: search + bell + user.
                   Bell is self-contained — it opens its own modal panel.
                   Search icon delegates to the global SearchModal via openSearch() store action.
@@ -878,6 +887,11 @@ export const DashboardScreen: React.FC = () => {
         </Text>
       </View>
       <View style={{ height: 16 }} />
+
+      {/* Hidden debug screen — long-press the StatusVault title to open */}
+      <Modal visible={showDebug} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setShowDebug(false)}>
+        <DebugScreen onClose={() => setShowDebug(false)} />
+      </Modal>
     </ScrollView>
   );
 };
