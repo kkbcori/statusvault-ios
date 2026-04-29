@@ -28,7 +28,16 @@ import { supabase } from './supabase';
  * so callers can know whether to suppress duplicate handling.
  */
 async function handleAuthUrl(url: string): Promise<boolean> {
-  if (!url || !url.includes('://auth')) return false;
+  // Log every incoming URL so the developer can see (in Xcode/Expo console)
+  // whether the deep link ever arrives at all. If you see this line in logs,
+  // iOS is correctly routing the URL to the app — any auth failure after this
+  // is a token-parsing or Supabase issue, not a deep-link issue.
+  console.log('[deepLink] received URL:', url);
+
+  if (!url || !url.includes('://auth')) {
+    console.log('[deepLink] URL does not match ://auth pattern, ignoring');
+    return false;
+  }
 
   try {
     // Split the URL into base + query/hash params. RN's URL constructor
@@ -49,11 +58,13 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     const accessToken  = params.get('access_token');
     const refreshToken = params.get('refresh_token');
     if (accessToken && refreshToken) {
+      console.log('[deepLink] handling implicit flow (access_token + refresh_token)');
       const { error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
       if (error) console.warn('[deepLink] setSession failed:', error.message);
+      else console.log('[deepLink] setSession succeeded');
       return true;
     }
 
@@ -61,8 +72,10 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     // URL contains ?code=xxx — exchange for a session.
     const code = params.get('code');
     if (code) {
+      console.log('[deepLink] handling PKCE flow (code exchange)');
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) console.warn('[deepLink] exchangeCodeForSession failed:', error.message);
+      else console.log('[deepLink] exchangeCodeForSession succeeded');
       return true;
     }
 
@@ -70,10 +83,14 @@ async function handleAuthUrl(url: string): Promise<boolean> {
     const tokenHash = params.get('token_hash');
     const type      = params.get('type');
     if (tokenHash && (type === 'signup' || type === 'email' || type === 'magiclink' || type === 'recovery')) {
+      console.log('[deepLink] handling legacy OTP flow (token_hash)');
       const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as any });
       if (error) console.warn('[deepLink] verifyOtp failed:', error.message);
+      else console.log('[deepLink] verifyOtp succeeded');
       return true;
     }
+
+    console.log('[deepLink] URL had no recognizable auth params');
 
     // URL pointed to /auth but had no recognizable params — likely a
     // malformed redirect. Return true so we don't bounce on it.

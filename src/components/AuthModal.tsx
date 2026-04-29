@@ -17,7 +17,7 @@ interface Props {
   message?: string;
 }
 
-type Mode = 'magic' | 'password' | 'set-password';
+type Mode = 'password' | 'register' | 'set-password';
 
 // ── Cross-platform inputs ─────────────────────────────────────
 const EmailInput = ({ value, onChange, onSubmit }: { value: string; onChange: (v: string) => void; onSubmit?: () => void }) =>
@@ -60,26 +60,25 @@ const PasswordInput = ({ value, onChange, onSubmit, showPwd, placeholder }: {
   );
 
 export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, message }) => {
-  const sendMagicLink      = useStore((s) => s.sendMagicLink);
   const signInWithPassword = useStore((s) => s.signInWithPassword);
+  const signUp             = useStore((s) => s.signUp);
   const setPassword        = useStore((s) => s.setPassword);
   const authUser           = useStore((s) => s.authUser);
 
-  const [mode,       setMode]       = useState<Mode>('magic');
+  const [mode,       setMode]       = useState<Mode>('password');
   const [email,      setEmail]      = useState('');
   const [password,   setPassword2]  = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [showPwd,    setShowPwd]    = useState(false);
   const [loading,    setLoading]    = useState(false);
   const [googleLoad, setGoogleLoad] = useState(false);
-  const [sent,       setSent]       = useState(false);
   const [error,      setError]      = useState('');
   const [success,    setSuccess]    = useState('');
 
   const reset = () => {
     setEmail(''); setPassword2(''); setConfirmPwd('');
     setLoading(false); setGoogleLoad(false);
-    setSent(false); setError(''); setSuccess(''); setShowPwd(false);
+    setError(''); setSuccess(''); setShowPwd(false);
   };
   const handleClose = () => { reset(); onClose(); };
 
@@ -91,22 +90,42 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
         : (typeof window !== 'undefined' && window.location.hostname === 'localhost'
             ? window.location.origin
             : 'https://www.statusvault.org');
-      const { error: err } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
-      if (err) setError(err.message);
-      else onClose();
+
+      // On web: signInWithOAuth redirects the browser automatically.
+      // On native: it returns { data: { url } } and we MUST open the URL ourselves.
+      // Without this, the user taps "Continue with Google" and absolutely nothing happens
+      // because the OAuth handshake never starts.
+      const { data, error: err } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          // skipBrowserRedirect prevents the SDK from trying to redirect via window.location
+          // on web environments where it doesn't make sense (e.g., embedded webview).
+          // On native it has no effect — the SDK can't redirect anyway.
+          skipBrowserRedirect: Platform.OS !== 'web',
+        },
+      });
+      if (err) { setError(err.message); return; }
+
+      if (Platform.OS !== 'web' && data?.url) {
+        // Open the OAuth URL in the system browser. After Google auth, the browser
+        // hits Supabase's callback, which then 302s back to statusvault://auth?code=...
+        // — picked up by registerDeepLinkHandler() in App.tsx.
+        const { Linking } = require('react-native');
+        const supported = await Linking.canOpenURL(data.url);
+        if (!supported) {
+          setError('Unable to open browser for Google sign-in.');
+          return;
+        }
+        await Linking.openURL(data.url);
+        // Don't close the modal — wait for deep-link return to set authUser.
+        // The modal will close automatically via onAuthStateChange listener.
+      } else {
+        // Web path: SDK handled the redirect, just close
+        onClose();
+      }
     } catch (e: any) { setError(e.message ?? 'Google sign-in failed'); }
     finally { setGoogleLoad(false); }
-  };
-
-  const handleMagicLink = async () => {
-    setError('');
-    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email address.'); return; }
-    setLoading(true);
-    try {
-      const { error: err } = await sendMagicLink(email.trim());
-      if (err) { setError(err); return; }
-      setSent(true);
-    } finally { setLoading(false); }
   };
 
   const handlePasswordLogin = async () => {
@@ -118,6 +137,21 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
       const { error: err } = await signInWithPassword(email.trim(), password);
       if (err) { setError(err); return; }
       reset(); onSuccess?.(); onClose();
+    } finally { setLoading(false); }
+  };
+
+  const handleRegister = async () => {
+    setError(''); setSuccess('');
+    if (!email.trim() || !email.includes('@')) { setError('Enter a valid email address.'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPwd) { setError('Passwords do not match.'); return; }
+    setLoading(true);
+    try {
+      const { error: err } = await signUp(email.trim(), password);
+      if (err) { setError(err); return; }
+      setSuccess('Account created! Check your email to verify, then sign in below.');
+      setMode('password');
+      setPassword2(''); setConfirmPwd('');
     } finally { setLoading(false); }
   };
 
@@ -175,23 +209,12 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
         <View style={s.headerIcon}><Ionicons name="shield-checkmark" size={22} color={colors.primaryLight} /></View>
         <View style={{ flex: 1 }}>
           <Text style={s.headerTitle}>Sign in to StatusVault</Text>
-          <Text style={s.headerSub}>{message ?? 'No password needed — we email you a login link'}</Text>
+          <Text style={s.headerSub}>{message ?? 'Sign in with Google or your email'}</Text>
         </View>
         <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
           <Ionicons name="close" size={18} color="rgba(240,244,255,0.60)" />
         </TouchableOpacity>
       </LinearGradient>
-
-      <View style={s.tabs}>
-        <TouchableOpacity style={[s.tab, mode === 'magic' && s.tabOn]} onPress={() => { setMode('magic'); setError(''); setSent(false); }}>
-          <Ionicons name="mail-outline" size={14} color={mode === 'magic' ? colors.primaryLight : 'rgba(240,244,255,0.55)'} />
-          <Text style={[s.tabTxt, mode === 'magic' && s.tabTxtOn]}>Magic Link</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[s.tab, mode === 'password' && s.tabOn]} onPress={() => { setMode('password'); setError(''); setSent(false); }}>
-          <Ionicons name="key-outline" size={14} color={mode === 'password' ? colors.primaryLight : 'rgba(240,244,255,0.55)'} />
-          <Text style={[s.tabTxt, mode === 'password' && s.tabTxtOn]}>Password</Text>
-        </TouchableOpacity>
-      </View>
 
       <View style={s.body}>
         <TouchableOpacity style={s.googleBtn} onPress={handleGoogle} disabled={googleLoad} activeOpacity={0.85}>
@@ -213,36 +236,7 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
         <View style={s.divRow}><View style={s.divLine} /><Text style={s.divTxt}>or</Text><View style={s.divLine} /></View>
 
         {error ? <View style={s.errorBox}><Ionicons name="alert-circle" size={15} color={colors.danger} /><Text style={s.errorTxt}>{error}</Text></View> : null}
-
-        {mode === 'magic' && !sent && (
-          <>
-            <Text style={s.label}>Email address</Text>
-            <EmailInput value={email} onChange={setEmail} onSubmit={handleMagicLink} />
-            <TouchableOpacity style={s.submitBtn} onPress={handleMagicLink} disabled={loading} activeOpacity={0.85}>
-              <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
-                {loading ? <ActivityIndicator color="#fff" size="small" /> : (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Ionicons name="mail-outline" size={16} color="#fff" />
-                    <Text style={s.submitTxt}>Send Login Link</Text>
-                  </View>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
-            <Text style={s.hint}>New user? We'll create your account automatically.</Text>
-          </>
-        )}
-
-        {mode === 'magic' && sent && (
-          <View style={s.sentBox}>
-            <View style={s.sentIcon}><Ionicons name="mail-unread-outline" size={34} color={colors.primaryLight} /></View>
-            <Text style={s.sentTitle}>Check your email</Text>
-            <Text style={s.sentDesc}>Login link sent to <Text style={s.sentEmail}>{email}</Text></Text>
-            <Text style={s.sentSub}>Click the link to sign in — no password needed.</Text>
-            <TouchableOpacity onPress={() => setSent(false)} style={{ marginTop: 12 }}>
-              <Text style={s.linkTxt}>Use a different email</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {success ? <View style={s.successBox}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={s.successTxt}>{success}</Text></View> : null}
 
         {mode === 'password' && (
           <>
@@ -260,8 +254,33 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Sign In</Text>}
               </LinearGradient>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setMode('magic')} style={{ alignItems: 'center', marginTop: 8 }}>
-              <Text style={s.linkTxt}>Forgot password? Use magic link instead →</Text>
+            <TouchableOpacity onPress={() => { setMode('register'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 12 }}>
+              <Text style={s.linkTxt}>New here? Create an account →</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {mode === 'register' && (
+          <>
+            <Text style={s.label}>Email address</Text>
+            <EmailInput value={email} onChange={setEmail} />
+            <Text style={s.label}>Password</Text>
+            <View style={{ position: 'relative' as any }}>
+              <PasswordInput value={password} onChange={setPassword2} onSubmit={handleRegister} showPwd={showPwd} />
+              <TouchableOpacity onPress={() => setShowPwd((v) => !v)} style={s.eyeBtn}>
+                <Ionicons name={showPwd ? 'eye-off-outline' : 'eye-outline'} size={16} color="rgba(240,244,255,0.55)" />
+              </TouchableOpacity>
+            </View>
+            <Text style={s.label}>Confirm password</Text>
+            <PasswordInput value={confirmPwd} onChange={setConfirmPwd} onSubmit={handleRegister} showPwd={showPwd} />
+            <TouchableOpacity style={s.submitBtn} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
+              <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
+                {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Create Account</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+            <Text style={s.hint}>By creating an account, you agree to our Terms and Privacy Policy.</Text>
+            <TouchableOpacity onPress={() => { setMode('password'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 8 }}>
+              <Text style={s.linkTxt}>Already have an account? Sign in →</Text>
             </TouchableOpacity>
           </>
         )}
@@ -322,11 +341,6 @@ const s = StyleSheet.create({
   headerSub:   { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.60)', lineHeight: 16 },
   closeBtn:    { width: 28, height: 28, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
 
-  tabs:        { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
-  tab:         { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 11 },
-  tabOn:       { borderBottomWidth: 2, borderBottomColor: colors.primaryLight },
-  tabTxt:      { fontSize: 13, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)' },
-  tabTxtOn:    { color: colors.primaryLight, fontFamily: 'Inter_700Bold' },
   body:        { padding: 20 },
 
   googleBtn: {
@@ -362,15 +376,4 @@ const s = StyleSheet.create({
 
   hint:    { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)', textAlign: 'center' },
   linkTxt: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: colors.primaryLight, textAlign: 'center' },
-
-  sentBox: { alignItems: 'center', paddingVertical: 8 },
-  sentIcon: {
-    width: 64, height: 64, borderRadius: 16,
-    backgroundColor: 'rgba(59,139,232,0.14)', borderWidth: 1, borderColor: 'rgba(111,175,242,0.30)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-  },
-  sentTitle: { fontSize: 17, fontFamily: 'Inter_700Bold', color: '#F0F4FF', marginBottom: 6 },
-  sentDesc:  { fontSize: 13, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.70)', textAlign: 'center' },
-  sentEmail: { fontFamily: 'Inter_700Bold', color: colors.primaryLight },
-  sentSub:   { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)', textAlign: 'center', marginTop: 4 },
 });
