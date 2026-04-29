@@ -269,61 +269,82 @@ export const DocumentsScreen: React.FC = () => {
             )}
 
             {addStep === 'type' && (
-              <FlatList style={{ flex: 1 }}
-                data={Object.entries(templatesByCategory)}
-                keyExtractor={([c]) => c}
-                showsVerticalScrollIndicator={true}
-                ListHeaderComponent={(
-                  <View style={styles.countryBanner}>
-                    <Text style={styles.countryBannerFlag}>🇺🇸</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.countryBannerTitle}>United States</Text>
-                      <Text style={styles.countryBannerSub}>Immigration documents</Text>
-                    </View>
-                  </View>
-                )}
-                renderItem={({ item: [category, templates] }) => {
-                  // Filter by search query (matches label or description, case-insensitive)
+              <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+                {(() => {
                   const q = searchQuery.trim().toLowerCase();
-                  const visible = q === '' ? templates : templates.filter((t) =>
-                    t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
-                  );
-                  if (visible.length === 0) return null;
-                  return (
-                    <View style={styles.templateSection}>
-                      <Text style={styles.templateSectionTitle}>{CATEGORY_LABELS[category as DocumentCategory]}</Text>
-                      {visible.map((tmpl) => {
-                        const alreadyAdded = documents.some((d) => d.templateId === tmpl.id);
-                        return (
-                          <TouchableOpacity
-                            key={tmpl.id}
-                            style={[styles.templateRow, alreadyAdded && styles.templateRowDisabled]}
-                            onPress={() => !alreadyAdded && selectTemplate(tmpl)}
-                            activeOpacity={alreadyAdded ? 1 : 0.6}
-                          >
-                            <View style={styles.tIconBox}><Text style={{ fontSize: 22 }}>{tmpl.icon}</Text></View>
-                            <View style={styles.templateInfo}>
-                              <Text style={styles.templateLabel}>{tmpl.label}</Text>
-                              <Text style={styles.templateDesc}>{tmpl.description}</Text>
-                            </View>
-                            {alreadyAdded
-                              ? <Text style={styles.addedBadge}>Added ✓</Text>
-                              : <Ionicons name="chevron-forward" size={20} color={colors.text3} />}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  );
-                }}
-                ListEmptyComponent={searchQuery.trim() !== '' ? (
-                  <View style={{ padding: 32, alignItems: 'center' }}>
-                    <Ionicons name="search-outline" size={32} color="rgba(240,244,255,0.30)" />
-                    <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', marginTop: 12, textAlign: 'center' }}>
-                      No documents match "{searchQuery}"
-                    </Text>
-                  </View>
-                ) : null}
-              />
+                  // Group templates by country first; within each country, by category.
+                  const countries: Array<{ code: string; flag: string; name: string; sub: string }> = [
+                    { code: 'US', flag: '🇺🇸', name: 'United States', sub: 'Immigration documents' },
+                    { code: 'CA', flag: '🇨🇦', name: 'Canada',         sub: 'Immigration documents' },
+                    { code: 'AU', flag: '🇦🇺', name: 'Australia',      sub: 'Immigration documents' },
+                  ];
+                  let totalVisible = 0;
+                  const blocks = countries.map(({ code, flag, name, sub }) => {
+                    // All templates for this country (default 'US' for entries without explicit field)
+                    const ctyTemplates = DOCUMENT_TEMPLATES.filter((t) => (t.country ?? 'US') === code);
+                    if (ctyTemplates.length === 0) return null;
+                    // Apply search filter
+                    const matched = q === '' ? ctyTemplates : ctyTemplates.filter((t) =>
+                      t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+                    );
+                    if (matched.length === 0) return null;
+                    totalVisible += matched.length;
+                    // Group by category within this country
+                    const byCat: Record<string, DocumentTemplate[]> = {};
+                    matched.forEach((t) => {
+                      if (!byCat[t.category]) byCat[t.category] = [];
+                      byCat[t.category].push(t);
+                    });
+                    return (
+                      <View key={code}>
+                        <View style={styles.countryBanner}>
+                          <Text style={styles.countryBannerFlag}>{flag}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.countryBannerTitle}>{name}</Text>
+                            <Text style={styles.countryBannerSub}>{sub}</Text>
+                          </View>
+                        </View>
+                        {Object.entries(byCat).map(([category, templates]) => (
+                          <View key={category} style={styles.templateSection}>
+                            <Text style={styles.templateSectionTitle}>{CATEGORY_LABELS[category as DocumentCategory]}</Text>
+                            {templates.map((tmpl) => {
+                              const alreadyAdded = documents.some((d) => d.templateId === tmpl.id);
+                              return (
+                                <TouchableOpacity
+                                  key={tmpl.id}
+                                  style={[styles.templateRow, alreadyAdded && styles.templateRowDisabled]}
+                                  onPress={() => !alreadyAdded && selectTemplate(tmpl)}
+                                  activeOpacity={alreadyAdded ? 1 : 0.6}
+                                >
+                                  <View style={styles.tIconBox}><Text style={{ fontSize: 22 }}>{tmpl.icon}</Text></View>
+                                  <View style={styles.templateInfo}>
+                                    <Text style={styles.templateLabel}>{tmpl.label}</Text>
+                                    <Text style={styles.templateDesc}>{tmpl.description}</Text>
+                                  </View>
+                                  {alreadyAdded
+                                    ? <Text style={styles.addedBadge}>Added ✓</Text>
+                                    : <Ionicons name="chevron-forward" size={20} color={colors.text3} />}
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        ))}
+                      </View>
+                    );
+                  });
+                  if (totalVisible === 0 && q !== '') {
+                    return (
+                      <View style={{ padding: 32, alignItems: 'center' }}>
+                        <Ionicons name="search-outline" size={32} color="rgba(240,244,255,0.30)" />
+                        <Text style={{ fontSize: 14, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', marginTop: 12, textAlign: 'center' }}>
+                          No documents match "{searchQuery}"
+                        </Text>
+                      </View>
+                    );
+                  }
+                  return blocks;
+                })()}
+              </ScrollView>
             )}
 
             {(addStep === 'date' && selectedTemplate) || (editingDoc && addStep === 'date') ? (

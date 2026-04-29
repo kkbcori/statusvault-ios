@@ -3,6 +3,11 @@
 // All types are shared across iOS and Android — no platform splits
 // ═══════════════════════════════════════════════════════════════
 
+/** Supported destination countries for immigration tracking.
+ *  Templates (documents/checklists/timers) are tagged by country and
+ *  the add-modal groups them under country banners. */
+export type ImmigrationCountry = 'US' | 'CA' | 'AU';
+
 /** Supported immigration document categories */
 export type DocumentCategory =
   | 'visa'
@@ -23,6 +28,8 @@ export interface DocumentTemplate {
   icon: string;
   /** Short description shown in dropdown */
   description: string;
+  /** Destination country this template applies to (default 'US' for legacy entries) */
+  country?: ImmigrationCountry;
 }
 
 /** A user-added document entry */

@@ -4,7 +4,7 @@
 // Each template includes all real required steps/documents
 // ═══════════════════════════════════════════════════════════════
 
-import { ChecklistItem } from '../types';
+import { ChecklistItem, ImmigrationCountry } from '../types';
 
 export interface ChecklistTemplate {
   id: string;
@@ -12,6 +12,8 @@ export interface ChecklistTemplate {
   icon: string;
   description: string;
   items: Omit<ChecklistItem, 'done'>[];
+  /** Destination country (default 'US' if not set) */
+  country?: ImmigrationCountry;
 }
 
 export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
@@ -266,6 +268,376 @@ export const CHECKLIST_TEMPLATES: ChecklistTemplate[] = [
       { id: 'ip-24', text: 'Verify all details on new passport immediately upon receipt', category: 'Indian Passport' },
       { id: 'ip-25', text: 'Update new passport details with employer, bank, SSA, DMV, and USCIS if needed', category: 'Indian Passport' },
       { id: 'ip-26', text: 'Add new passport to StatusVault with expiry date for future alerts', category: 'Indian Passport' },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // CANADA — Process checklists for Indian/expat applicants
+  // Sources: IRCC (canada.ca), university ISO offices, Moving2Canada,
+  // Canadim, CanadaVisa. Researched 2026 — verify against current IRCC
+  // requirements before submitting.
+  // ═══════════════════════════════════════════════════════════════
+
+  // ─── Canada Express Entry / PR ────────────────────────────
+  {
+    id: 'ca-express-entry-pr',
+    label: 'Canada Express Entry PR',
+    icon: '🇨🇦',
+    country: 'CA',
+    description: 'Federal Skilled Worker / CEC / FST permanent residence application',
+    items: [
+      { id: 'cee-01', text: 'Take IELTS General/CELPIP (English) or TEF/TCF (French) — book early', category: 'Express Entry' },
+      { id: 'cee-02', text: 'Submit education credential to WES/IQAS for ECA report', category: 'Express Entry' },
+      { id: 'cee-03', text: 'Calculate CRS score using IRCC Comprehensive Ranking System tool', category: 'Express Entry' },
+      { id: 'cee-04', text: 'Create Express Entry profile on IRCC portal (12-month profile validity)', category: 'Express Entry' },
+      { id: 'cee-05', text: 'Submit profiles to relevant Provincial Nominee Programs (PNP) for +600 CRS', category: 'Express Entry' },
+      { id: 'cee-06', text: 'Receive Invitation to Apply (ITA) from IRCC draw', category: 'Express Entry' },
+      { id: 'cee-07', text: 'Obtain Police Clearance Certificate from each country lived 6+ months', category: 'Express Entry' },
+      { id: 'cee-08', text: 'Schedule and complete IRCC medical exam with Panel Physician (12-mo validity)', category: 'Express Entry' },
+      { id: 'cee-09', text: 'Get Proof of Funds: 6+ months bank statements meeting LICO threshold', category: 'Express Entry' },
+      { id: 'cee-10', text: 'Get reference letters from past employers (with NOC code, hours, salary, duties)', category: 'Express Entry' },
+      { id: 'cee-11', text: 'Update passport copies, photos, marriage cert, kids\' birth certs (if applicable)', category: 'Express Entry' },
+      { id: 'cee-12', text: 'Pay application fees: $950 PR + $515 Right of PR + $85 biometric per person', category: 'Express Entry' },
+      { id: 'cee-13', text: 'Submit complete application within 60 days of ITA', category: 'Express Entry' },
+      { id: 'cee-14', text: 'Provide biometrics within 30 days of biometrics request', category: 'Express Entry' },
+      { id: 'cee-15', text: 'Receive AOR (Acknowledgement of Receipt) within 24-48 hours', category: 'Express Entry' },
+      { id: 'cee-16', text: 'Respond to any IRCC requests for additional documents within deadline', category: 'Express Entry' },
+      { id: 'cee-17', text: 'Receive Confirmation of Permanent Residence (COPR) — one-time landing doc', category: 'Express Entry' },
+      { id: 'cee-18', text: 'Land in Canada before COPR expires; receive PR card by mail (~30 days)', category: 'Express Entry' },
+    ],
+  },
+
+  // ─── Canada Study Permit ─────────────────────────────────
+  {
+    id: 'ca-study-permit',
+    label: 'Canada Study Permit',
+    icon: '🎓',
+    country: 'CA',
+    description: 'Study permit application from India / abroad',
+    items: [
+      { id: 'csp-01', text: 'Apply to and receive acceptance from a Designated Learning Institution (DLI)', category: 'Study Permit' },
+      { id: 'csp-02', text: 'Pay first-year tuition deposit and request Letter of Acceptance (LOA)', category: 'Study Permit' },
+      { id: 'csp-03', text: 'Obtain Provincial Attestation Letter (PAL) from province (required since 2024)', category: 'Study Permit' },
+      { id: 'csp-04', text: 'Show proof of funds: CAD $22,895 + first-year tuition (effective Sept 2025)', category: 'Study Permit' },
+      { id: 'csp-05', text: 'Take IELTS Academic / PTE Academic / TOEFL iBT (test results <2 years old)', category: 'Study Permit' },
+      { id: 'csp-06', text: 'Get GIC (Guaranteed Investment Certificate) of CAD $20,635 if eligible for SDS', category: 'Study Permit' },
+      { id: 'csp-07', text: 'Prepare Statement of Purpose explaining study plan and ties to home country', category: 'Study Permit' },
+      { id: 'csp-08', text: 'Get Police Clearance Certificate from Passport Seva Kendra (India)', category: 'Study Permit' },
+      { id: 'csp-09', text: 'Schedule medical exam with IRCC-approved Panel Physician', category: 'Study Permit' },
+      { id: 'csp-10', text: 'Create IRCC Secure Account, complete IMM 1294 study permit application', category: 'Study Permit' },
+      { id: 'csp-11', text: 'Pay fees: $150 study permit + $85 biometrics', category: 'Study Permit' },
+      { id: 'csp-12', text: 'Submit application online via IRCC portal', category: 'Study Permit' },
+      { id: 'csp-13', text: 'Provide biometrics at VFS Global within 30 days of request', category: 'Study Permit' },
+      { id: 'csp-14', text: 'Submit passport for visa stamping if required', category: 'Study Permit' },
+      { id: 'csp-15', text: 'Receive Port of Entry Letter; carry to Canada with passport', category: 'Study Permit' },
+      { id: 'csp-16', text: 'On arrival: confirm address with CBSA, receive printed study permit', category: 'Study Permit' },
+    ],
+  },
+
+  // ─── Canada PGWP ─────────────────────────────────────────
+  {
+    id: 'ca-pgwp',
+    label: 'Post-Graduation Work Permit',
+    icon: '🎯',
+    country: 'CA',
+    description: 'PGWP application after Canadian study program completion',
+    items: [
+      { id: 'cpg-01', text: 'Verify program is PGWP-eligible (DLI list + field of study CIP code)', category: 'PGWP' },
+      { id: 'cpg-02', text: 'Maintain full-time student status throughout program (final semester exception)', category: 'PGWP' },
+      { id: 'cpg-03', text: 'Complete at least 50% of program in-person from inside Canada (post-Sept 2024)', category: 'PGWP' },
+      { id: 'cpg-04', text: 'Take IELTS / CELPIP — meet CLB 5 (diploma) or CLB 7 (degree) per Nov 2024 rules', category: 'PGWP' },
+      { id: 'cpg-05', text: 'Receive Letter of Completion / final transcript from institution', category: 'PGWP' },
+      { id: 'cpg-06', text: 'Confirm passport is valid for full PGWP duration (or be ready to renew)', category: 'PGWP' },
+      { id: 'cpg-07', text: 'Submit PGWP application within 180 days of completion letter', category: 'PGWP' },
+      { id: 'cpg-08', text: 'If applying inside Canada: study permit must be valid OR apply for restoration', category: 'PGWP' },
+      { id: 'cpg-09', text: 'Pay $255 fee ($155 PGWP + $100 open work permit holder fee)', category: 'PGWP' },
+      { id: 'cpg-10', text: 'Submit IMM 5710 application form online via IRCC portal', category: 'PGWP' },
+      { id: 'cpg-11', text: 'Begin working full-time immediately if applied while study permit was valid', category: 'PGWP' },
+      { id: 'cpg-12', text: 'Receive PGWP — one-time only, cannot be extended (except for passport-cut cases)', category: 'PGWP' },
+    ],
+  },
+
+  // ─── Canada Work Permit (LMIA-based) ─────────────────────
+  {
+    id: 'ca-work-permit',
+    label: 'Canada Work Permit (Employer)',
+    icon: '💼',
+    country: 'CA',
+    description: 'Employer-specific work permit application from India',
+    items: [
+      { id: 'cwp-01', text: 'Receive job offer letter from Canadian employer with terms and salary', category: 'Work Permit' },
+      { id: 'cwp-02', text: 'Employer obtains Labour Market Impact Assessment (LMIA) from ESDC', category: 'Work Permit' },
+      { id: 'cwp-03', text: 'Receive positive LMIA + Offer of Employment from employer', category: 'Work Permit' },
+      { id: 'cwp-04', text: 'Confirm NOC TEER classification of the offered position', category: 'Work Permit' },
+      { id: 'cwp-05', text: 'Get Police Clearance Certificate from Passport Seva (PSK) India', category: 'Work Permit' },
+      { id: 'cwp-06', text: 'Schedule IRCC medical exam if required (job sector-dependent)', category: 'Work Permit' },
+      { id: 'cwp-07', text: 'Prepare proof of qualifications: degrees, transcripts, work experience letters', category: 'Work Permit' },
+      { id: 'cwp-08', text: 'Complete IMM 1295 work permit application form online', category: 'Work Permit' },
+      { id: 'cwp-09', text: 'Pay fees: $155 work permit + $100 open work permit holder fee + $85 biometric', category: 'Work Permit' },
+      { id: 'cwp-10', text: 'Submit application; provide biometrics at VFS within 30 days', category: 'Work Permit' },
+      { id: 'cwp-11', text: 'Receive Port of Entry Letter (work permit issued at airport on arrival)', category: 'Work Permit' },
+      { id: 'cwp-12', text: 'On arrival: declare work intent to CBSA officer; receive printed work permit', category: 'Work Permit' },
+      { id: 'cwp-13', text: 'Apply for SIN (Social Insurance Number) at Service Canada within first week', category: 'Work Permit' },
+    ],
+  },
+
+  // ─── Canada PR Card Renewal ──────────────────────────────
+  {
+    id: 'ca-pr-card-renewal',
+    label: 'Canada PR Card Renewal',
+    icon: '🪪',
+    country: 'CA',
+    description: 'Renew expiring Permanent Resident card (5-year validity)',
+    items: [
+      { id: 'cpr-01', text: 'Apply within 9 months of card expiry; ideally 6 months before', category: 'PR Card' },
+      { id: 'cpr-02', text: 'Verify residency obligation: 730+ physical days in Canada in past 5 years', category: 'PR Card' },
+      { id: 'cpr-03', text: 'Calculate physical presence using travel records (passport stamps + flights)', category: 'PR Card' },
+      { id: 'cpr-04', text: 'Get 2 PR card photos meeting IRCC photo specifications', category: 'PR Card' },
+      { id: 'cpr-05', text: 'Complete IMM 5444 application form (online or paper)', category: 'PR Card' },
+      { id: 'cpr-06', text: 'Gather passport copy, current PR card copy, address history (5 yrs)', category: 'PR Card' },
+      { id: 'cpr-07', text: 'List employment history covering last 5 years', category: 'PR Card' },
+      { id: 'cpr-08', text: 'Provide Canadian tax filing history as proof of residency', category: 'PR Card' },
+      { id: 'cpr-09', text: 'Pay $50 PR card fee online', category: 'PR Card' },
+      { id: 'cpr-10', text: 'Mail application to Case Processing Centre Sydney (CPC-S) Nova Scotia', category: 'PR Card' },
+      { id: 'cpr-11', text: 'Track via IRCC online tools; respond to any residency obligation queries', category: 'PR Card' },
+      { id: 'cpr-12', text: 'Receive new PR card by mail (~30 days regular processing)', category: 'PR Card' },
+    ],
+  },
+
+  // ─── Canada Spousal Sponsorship ──────────────────────────
+  {
+    id: 'ca-spousal-sponsorship',
+    label: 'Canada Spousal Sponsorship',
+    icon: '💑',
+    country: 'CA',
+    description: 'Sponsor spouse / common-law partner for Canada PR',
+    items: [
+      { id: 'css-01', text: 'Confirm sponsor eligibility: Canadian citizen/PR, 18+, financially capable', category: 'Spousal' },
+      { id: 'css-02', text: 'Choose stream: Inland (sponsored partner already in Canada) or Outland', category: 'Spousal' },
+      { id: 'css-03', text: 'Gather marriage cert / common-law evidence (12+ months cohabitation)', category: 'Spousal' },
+      { id: 'css-04', text: 'Build relationship evidence: photos, joint accounts, lease, communication logs', category: 'Spousal' },
+      { id: 'css-05', text: 'Sponsor: complete IMM 1344 sponsor application, sign undertaking', category: 'Spousal' },
+      { id: 'css-06', text: 'Sponsored: complete IMM 0008 application + IMM 5532 relationship form', category: 'Spousal' },
+      { id: 'css-07', text: 'Sponsored: get police certificates from countries lived 6+ months', category: 'Spousal' },
+      { id: 'css-08', text: 'Sponsored: complete IRCC medical exam', category: 'Spousal' },
+      { id: 'css-09', text: 'Pay $1,205 fees: $85 sponsor + $570 application + $515 RPRF + $85 biometric', category: 'Spousal' },
+      { id: 'css-10', text: 'Submit complete package via IRCC online portal', category: 'Spousal' },
+      { id: 'css-11', text: 'Sponsored partner provides biometrics within 30 days', category: 'Spousal' },
+      { id: 'css-12', text: 'Apply for Open Work Permit (Inland only) — work while application processes', category: 'Spousal' },
+      { id: 'css-13', text: 'Respond to any IRCC interview / additional document requests', category: 'Spousal' },
+      { id: 'css-14', text: 'Receive PR confirmation; sponsored partner becomes PR', category: 'Spousal' },
+    ],
+  },
+
+  // ─── Canadian Citizenship ────────────────────────────────
+  {
+    id: 'ca-citizenship',
+    label: 'Canadian Citizenship',
+    icon: '🍁',
+    country: 'CA',
+    description: 'Citizenship application after meeting PR residency requirements',
+    items: [
+      { id: 'ccz-01', text: 'Verify physical presence: 1,095+ days in Canada in past 5 years', category: 'Citizenship' },
+      { id: 'ccz-02', text: 'Calculate days using IRCC Physical Presence Calculator', category: 'Citizenship' },
+      { id: 'ccz-03', text: 'Confirm tax filing for any 3 years within the 5-year qualifying period', category: 'Citizenship' },
+      { id: 'ccz-04', text: 'Take IELTS General / CELPIP-General (CLB 4+) — applicants 18-54 only', category: 'Citizenship' },
+      { id: 'ccz-05', text: 'Study "Discover Canada" guide for citizenship test', category: 'Citizenship' },
+      { id: 'ccz-06', text: 'Complete CIT 0002 application form (online via IRCC portal)', category: 'Citizenship' },
+      { id: 'ccz-07', text: 'Provide PR card, passport, language proof, address history', category: 'Citizenship' },
+      { id: 'ccz-08', text: 'Pay $630 fee ($530 processing + $100 right of citizenship) per adult', category: 'Citizenship' },
+      { id: 'ccz-09', text: 'Submit application; receive AOR within ~6 weeks', category: 'Citizenship' },
+      { id: 'ccz-10', text: 'Provide biometrics if requested', category: 'Citizenship' },
+      { id: 'ccz-11', text: 'Take citizenship test (online) — 20 questions, 75% pass mark', category: 'Citizenship' },
+      { id: 'ccz-12', text: 'Attend citizenship interview (if requested)', category: 'Citizenship' },
+      { id: 'ccz-13', text: 'Attend Oath of Citizenship ceremony', category: 'Citizenship' },
+      { id: 'ccz-14', text: 'Receive Canadian citizenship certificate; apply for Canadian passport', category: 'Citizenship' },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // AUSTRALIA — Process checklists for Indian/expat applicants
+  // Sources: Department of Home Affairs (immi.homeaffairs.gov.au),
+  // Study Australia, registered MARA agents, AusVisa guides.
+  // Researched 2026 — verify with Home Affairs before submission.
+  // ═══════════════════════════════════════════════════════════════
+
+  // ─── Australia Student Visa (500) ────────────────────────
+  {
+    id: 'au-student-500',
+    label: 'Australia Student Visa (500)',
+    icon: '🎓',
+    country: 'AU',
+    description: 'Subclass 500 student visa application from India',
+    items: [
+      { id: 'au5-01', text: 'Apply to and receive offer from CRICOS-registered Australian institution', category: 'Subclass 500' },
+      { id: 'au5-02', text: 'Pay tuition deposit; receive Confirmation of Enrolment (CoE)', category: 'Subclass 500' },
+      { id: 'au5-03', text: 'Take IELTS / PTE / TOEFL / OET — meet course-level English score', category: 'Subclass 500' },
+      { id: 'au5-04', text: 'Prepare Genuine Student (GS) statement (replaces GTE since March 2024)', category: 'Subclass 500' },
+      { id: 'au5-05', text: 'Show proof of funds: AUD $29,710+ for 12 months living costs', category: 'Subclass 500' },
+      { id: 'au5-06', text: 'Get Overseas Student Health Cover (OSHC) for entire visa duration', category: 'Subclass 500' },
+      { id: 'au5-07', text: 'Get Police Clearance Certificate from PSK India', category: 'Subclass 500' },
+      { id: 'au5-08', text: 'Schedule health examination with Bupa-approved panel physician', category: 'Subclass 500' },
+      { id: 'au5-09', text: 'Note: India is now AL3 (highest risk tier) — extra documentation scrutiny', category: 'Subclass 500' },
+      { id: 'au5-10', text: 'Create ImmiAccount; complete Subclass 500 online application', category: 'Subclass 500' },
+      { id: 'au5-11', text: 'Pay AUD $2,000+ visa application charge (effective 2026)', category: 'Subclass 500' },
+      { id: 'au5-12', text: 'Submit all documents through ImmiAccount portal', category: 'Subclass 500' },
+      { id: 'au5-13', text: 'Provide biometrics at VFS Global if requested', category: 'Subclass 500' },
+      { id: 'au5-14', text: 'Respond to any case officer questions / additional document requests', category: 'Subclass 500' },
+      { id: 'au5-15', text: 'Receive visa grant; arrive in Australia before course start date', category: 'Subclass 500' },
+    ],
+  },
+
+  // ─── Australia Temporary Graduate Visa (485) ─────────────
+  {
+    id: 'au-graduate-485',
+    label: 'Australia 485 Graduate Visa',
+    icon: '🎯',
+    country: 'AU',
+    description: 'Subclass 485 Temporary Graduate Visa — Post-Higher Education Work / Post-Vocational stream',
+    items: [
+      { id: 'au4-01', text: 'Confirm course is CRICOS-registered and on PGWP/485-eligible field list', category: 'Subclass 485' },
+      { id: 'au4-02', text: 'Verify minimum 16 months of study completed in Australia (post 2024 rule)', category: 'Subclass 485' },
+      { id: 'au4-03', text: 'Receive course completion letter / final results from institution', category: 'Subclass 485' },
+      { id: 'au4-04', text: 'Verify under 35 years (for most streams; under 50 for Master research/PhD)', category: 'Subclass 485' },
+      { id: 'au4-05', text: 'Take IELTS Academic 6.5 (no band <5.5) or equivalent — 1-year validity', category: 'Subclass 485' },
+      { id: 'au4-06', text: 'Get Police Clearance Certificates from countries lived 12+ months', category: 'Subclass 485' },
+      { id: 'au4-07', text: 'Schedule and complete health examination with panel physician', category: 'Subclass 485' },
+      { id: 'au4-08', text: 'Get Overseas Student Health Cover (or substitute health insurance)', category: 'Subclass 485' },
+      { id: 'au4-09', text: 'Post-Vocational stream only: obtain positive skills assessment from authority', category: 'Subclass 485' },
+      { id: 'au4-10', text: 'Apply within 6 months of course completion (strict deadline)', category: 'Subclass 485' },
+      { id: 'au4-11', text: 'Complete application via ImmiAccount; pay AUD $2,300+ fee', category: 'Subclass 485' },
+      { id: 'au4-12', text: 'Submit while inside Australia on valid student visa (preferred)', category: 'Subclass 485' },
+      { id: 'au4-13', text: 'Receive Bridging Visa A automatically while application processes', category: 'Subclass 485' },
+      { id: 'au4-14', text: 'Indian nationals: confirm eligibility for AI-ECTA +1 year extension', category: 'Subclass 485' },
+      { id: 'au4-15', text: 'Receive 485 grant — Bachelor 2yr / Master 2-3yr / PhD 4yr', category: 'Subclass 485' },
+    ],
+  },
+
+  // ─── Australia Skills in Demand Visa (482) ───────────────
+  {
+    id: 'au-sid-482',
+    label: 'Australia 482 Skills in Demand',
+    icon: '💼',
+    country: 'AU',
+    description: 'Subclass 482 employer-sponsored work visa (replaced TSS Dec 2024)',
+    items: [
+      { id: 'sid-01', text: 'Find Australian employer willing to sponsor (must be approved sponsor)', category: 'Subclass 482' },
+      { id: 'sid-02', text: 'Identify stream: Specialist (AUD $141k+), Core Skills (CSOL), or Labour Agreement', category: 'Subclass 482' },
+      { id: 'sid-03', text: 'Verify ANZSCO occupation code is on Core Skills Occupation List (CSOL)', category: 'Subclass 482' },
+      { id: 'sid-04', text: 'Confirm minimum 1 year relevant work experience (reduced from 2 yrs in 2024)', category: 'Subclass 482' },
+      { id: 'sid-05', text: 'Get positive skills assessment from relevant Australian assessing authority', category: 'Subclass 482' },
+      { id: 'sid-06', text: 'Take IELTS 5.0+ (each band 5.0+) or accepted equivalent', category: 'Subclass 482' },
+      { id: 'sid-07', text: 'Employer lodges Nomination application with Department of Home Affairs', category: 'Subclass 482' },
+      { id: 'sid-08', text: 'Get Police Clearance Certificate from PSK India + any other countries', category: 'Subclass 482' },
+      { id: 'sid-09', text: 'Schedule and complete Bupa health examination', category: 'Subclass 482' },
+      { id: 'sid-10', text: 'Compile employment letters, payslips, tax returns covering past 1-5 years', category: 'Subclass 482' },
+      { id: 'sid-11', text: 'Lodge Subclass 482 visa application via ImmiAccount', category: 'Subclass 482' },
+      { id: 'sid-12', text: 'Pay visa application charge (~AUD $3,210+ for primary applicant)', category: 'Subclass 482' },
+      { id: 'sid-13', text: 'Provide biometrics at VFS Global', category: 'Subclass 482' },
+      { id: 'sid-14', text: 'Receive visa grant; can use 180-day buffer to change employers (post-2024)', category: 'Subclass 482' },
+    ],
+  },
+
+  // ─── Australia Skilled PR (189/190) ──────────────────────
+  {
+    id: 'au-skilled-pr',
+    label: 'Australia Skilled PR (189/190)',
+    icon: '⭐',
+    country: 'AU',
+    description: 'Subclass 189 Skilled Independent / 190 State Nominated permanent residence',
+    items: [
+      { id: 'asp-01', text: 'Confirm occupation is on MLTSSL (189) or relevant state list (190)', category: 'Skilled PR' },
+      { id: 'asp-02', text: 'Get positive skills assessment from authority (e.g. ACS, EA, VETASSESS)', category: 'Skilled PR' },
+      { id: 'asp-03', text: 'Take IELTS 8.0 / PTE 79+ (Superior English) for max points', category: 'Skilled PR' },
+      { id: 'asp-04', text: 'Calculate points: age + English + experience + education + partner', category: 'Skilled PR' },
+      { id: 'asp-05', text: 'Need minimum 65 points; 80+ recommended for invitation', category: 'Skilled PR' },
+      { id: 'asp-06', text: 'Submit Expression of Interest (EOI) in SkillSelect (2-year validity)', category: 'Skilled PR' },
+      { id: 'asp-07', text: 'For 190: apply for state nomination separately (+5 points)', category: 'Skilled PR' },
+      { id: 'asp-08', text: 'Receive Invitation to Apply (ITA) from Home Affairs', category: 'Skilled PR' },
+      { id: 'asp-09', text: 'Get Police Clearance Certificates from countries lived 12+ months', category: 'Skilled PR' },
+      { id: 'asp-10', text: 'Complete health examination with panel physician', category: 'Skilled PR' },
+      { id: 'asp-11', text: 'Compile Form 80 (personal particulars) + Form 1221 (work history)', category: 'Skilled PR' },
+      { id: 'asp-12', text: 'Lodge full application within 60 days of invitation', category: 'Skilled PR' },
+      { id: 'asp-13', text: 'Pay AUD $4,640+ visa application charge', category: 'Skilled PR' },
+      { id: 'asp-14', text: 'Provide biometrics at VFS Global', category: 'Skilled PR' },
+      { id: 'asp-15', text: 'Receive PR grant — full Australian permanent resident rights', category: 'Skilled PR' },
+    ],
+  },
+
+  // ─── Australia Visitor Visa (600) ────────────────────────
+  {
+    id: 'au-visitor-600',
+    label: 'Australia Visitor Visa (600)',
+    icon: '🇦🇺',
+    country: 'AU',
+    description: 'Subclass 600 visitor visa from India — Tourist or Business stream',
+    items: [
+      { id: 'av6-01', text: 'Identify correct stream: Tourist, Business Visitor, or Sponsored Family', category: 'Subclass 600' },
+      { id: 'av6-02', text: 'Indian passport with 6+ months validity beyond intended stay', category: 'Subclass 600' },
+      { id: 'av6-03', text: 'Detailed travel itinerary with flight bookings and accommodation', category: 'Subclass 600' },
+      { id: 'av6-04', text: 'Bank statements showing sufficient funds for trip duration', category: 'Subclass 600' },
+      { id: 'av6-05', text: 'Employment letter (NOC from employer) + recent payslips', category: 'Subclass 600' },
+      { id: 'av6-06', text: 'Income Tax Returns from last 2-3 years', category: 'Subclass 600' },
+      { id: 'av6-07', text: 'Family visit: invitation letter from Australian sponsor + their PR/citizen proof', category: 'Subclass 600' },
+      { id: 'av6-08', text: 'Business: invitation from Australian company + conference/meeting evidence', category: 'Subclass 600' },
+      { id: 'av6-09', text: 'Travel insurance (recommended, mandatory for some streams)', category: 'Subclass 600' },
+      { id: 'av6-10', text: 'Demonstrate strong ties to India (job, property, family)', category: 'Subclass 600' },
+      { id: 'av6-11', text: 'Create ImmiAccount; complete Subclass 600 online application', category: 'Subclass 600' },
+      { id: 'av6-12', text: 'Pay visa application charge (AUD $200 base + service fees)', category: 'Subclass 600' },
+      { id: 'av6-13', text: 'Provide biometrics at VFS Global Australia centre', category: 'Subclass 600' },
+      { id: 'av6-14', text: 'Receive visa grant by email — print and carry to Australia', category: 'Subclass 600' },
+    ],
+  },
+
+  // ─── Australia Partner Visa (820/801 or 309/100) ─────────
+  {
+    id: 'au-partner-visa',
+    label: 'Australia Partner Visa',
+    icon: '💑',
+    country: 'AU',
+    description: 'Onshore (820/801) or Offshore (309/100) partner visa',
+    items: [
+      { id: 'app-01', text: 'Confirm sponsor: Australian citizen / PR / eligible NZ citizen', category: 'Partner' },
+      { id: 'app-02', text: 'Choose pathway: 820 onshore OR 309 offshore based on applicant location', category: 'Partner' },
+      { id: 'app-03', text: 'Document relationship: 12+ months married OR de facto cohabitation', category: 'Partner' },
+      { id: 'app-04', text: 'Build evidence: financial (joint accounts, leases), nature of household, social', category: 'Partner' },
+      { id: 'app-05', text: 'Get marriage certificate (apostilled if from India)', category: 'Partner' },
+      { id: 'app-06', text: 'Sponsor: complete sponsorship application + character documents', category: 'Partner' },
+      { id: 'app-07', text: 'Applicant: complete Form 47SP (visa application) + Form 80', category: 'Partner' },
+      { id: 'app-08', text: 'Get Police Clearance Certificates from each country lived 12+ months', category: 'Partner' },
+      { id: 'app-09', text: 'Complete health examination with panel physician', category: 'Partner' },
+      { id: 'app-10', text: 'Compile statutory declarations from Form 888 witnesses (2+)', category: 'Partner' },
+      { id: 'app-11', text: 'Lodge application via ImmiAccount; pay AUD $9,365 visa fee (2026)', category: 'Partner' },
+      { id: 'app-12', text: 'Onshore (820): receive Bridging Visa A; can work and study', category: 'Partner' },
+      { id: 'app-13', text: 'Receive temporary visa grant (820 or 309) — typically 12-18 months wait', category: 'Partner' },
+      { id: 'app-14', text: 'After 2 years from initial application: assess for permanent stage (801/100)', category: 'Partner' },
+      { id: 'app-15', text: 'Provide updated relationship evidence for permanent stage assessment', category: 'Partner' },
+      { id: 'app-16', text: 'Receive permanent partner visa grant', category: 'Partner' },
+    ],
+  },
+
+  // ─── Australia Citizenship ───────────────────────────────
+  {
+    id: 'au-citizenship',
+    label: 'Australian Citizenship',
+    icon: '🦘',
+    country: 'AU',
+    description: 'Australian citizenship by conferral after 4 years of PR residency',
+    items: [
+      { id: 'aci-01', text: 'Verify residency: 4+ years legal Australian residence (12 mo as PR)', category: 'Citizenship' },
+      { id: 'aci-02', text: 'Calculate absences: <90 days outside Australia in last 12 months as PR', category: 'Citizenship' },
+      { id: 'aci-03', text: 'Confirm <12 months total absences in 4-year residency period', category: 'Citizenship' },
+      { id: 'aci-04', text: 'Complete Form 1300t citizenship application (online via ImmiAccount)', category: 'Citizenship' },
+      { id: 'aci-05', text: 'Provide PR visa, passport, address history, character documents', category: 'Citizenship' },
+      { id: 'aci-06', text: 'Get Police Clearance Certificate from each country lived 90+ days', category: 'Citizenship' },
+      { id: 'aci-07', text: 'Pay AUD $560 application fee', category: 'Citizenship' },
+      { id: 'aci-08', text: 'Submit application; receive acknowledgement within ~2 weeks', category: 'Citizenship' },
+      { id: 'aci-09', text: 'Study Australian Citizenship resource book for citizenship test', category: 'Citizenship' },
+      { id: 'aci-10', text: 'Sit citizenship test (75% pass) — 20 questions on values/laws/history', category: 'Citizenship' },
+      { id: 'aci-11', text: 'Attend citizenship interview if requested', category: 'Citizenship' },
+      { id: 'aci-12', text: 'Attend Australian Citizenship Ceremony — make Pledge of Commitment', category: 'Citizenship' },
+      { id: 'aci-13', text: 'Receive Australian citizenship certificate; apply for Australian passport', category: 'Citizenship' },
+      { id: 'aci-14', text: 'Note: Australia does not allow dual citizenship with India — surrender Indian citizenship', category: 'Citizenship' },
     ],
   },
 ];

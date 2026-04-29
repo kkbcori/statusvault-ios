@@ -198,19 +198,60 @@ export const CounterScreen: React.FC = () => {
               </View>
             )}
             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
-              <View style={styles.countryBanner}>
-                <Text style={styles.countryBannerFlag}>🇺🇸</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.countryBannerTitle}>United States</Text>
-                  <Text style={styles.countryBannerSub}>Immigration deadline timers</Text>
-                </View>
-              </View>
               {(() => {
                 const q = searchQuery.trim().toLowerCase();
-                const filtered = q === '' ? COUNTER_TEMPLATES : COUNTER_TEMPLATES.filter((t) =>
-                  t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
-                );
-                if (filtered.length === 0) {
+                const countries: Array<{ code: string; flag: string; name: string; sub: string }> = [
+                  { code: 'US', flag: '🇺🇸', name: 'United States', sub: 'Immigration deadline timers' },
+                  { code: 'CA', flag: '🇨🇦', name: 'Canada',         sub: 'Immigration deadline timers' },
+                  { code: 'AU', flag: '🇦🇺', name: 'Australia',      sub: 'Immigration deadline timers' },
+                ];
+                let totalVisible = 0;
+                const blocks = countries.map(({ code, flag, name, sub }) => {
+                  const ctyTemplates = COUNTER_TEMPLATES.filter((t) => (t.country ?? 'US') === code);
+                  if (ctyTemplates.length === 0) return null;
+                  const matched = q === '' ? ctyTemplates : ctyTemplates.filter((t) =>
+                    t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+                  );
+                  if (matched.length === 0) return null;
+                  totalVisible += matched.length;
+                  return (
+                    <View key={code}>
+                      <View style={styles.countryBanner}>
+                        <Text style={styles.countryBannerFlag}>{flag}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.countryBannerTitle}>{name}</Text>
+                          <Text style={styles.countryBannerSub}>{sub}</Text>
+                        </View>
+                      </View>
+                      {matched.map((t) => {
+                        const added = activeIds.includes(t.id);
+                        return (
+                          <TouchableOpacity
+                            key={t.id}
+                            style={[styles.templateRow, added && styles.templateRowAdded]}
+                            onPress={() => {
+                              if (added) return;
+                              addCounter(t.id); setShowAdd(false); setSearchOpen(false); setSearchQuery('');
+                            }}
+                            activeOpacity={added ? 1 : 0.75}
+                          >
+                            <Text style={{ fontSize: 22, marginRight: 12 }}>{t.icon}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.templateLabel}>{t.label}</Text>
+                              <Text style={styles.templateDesc}>{t.description}</Text>
+                              <Text style={styles.templateCount}>Max {t.maxDays} days · Warn at {t.warnAt}d</Text>
+                            </View>
+                            {added
+                              ? <View style={styles.addedBadge}><Text style={styles.addedText}>Added</Text></View>
+                              : <Ionicons name="add-circle-outline" size={22} color={colors.primaryLight} />
+                            }
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  );
+                });
+                if (totalVisible === 0 && q !== '') {
                   return (
                     <View style={{ padding: 32, alignItems: 'center' }}>
                       <Ionicons name="search-outline" size={32} color="rgba(240,244,255,0.30)" />
@@ -220,31 +261,7 @@ export const CounterScreen: React.FC = () => {
                     </View>
                   );
                 }
-                return filtered.map((t) => {
-                  const added = activeIds.includes(t.id);
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      style={[styles.templateRow, added && styles.templateRowAdded]}
-                      onPress={() => {
-                        if (added) return;
-                        addCounter(t.id); setShowAdd(false); setSearchOpen(false); setSearchQuery('');
-                      }}
-                      activeOpacity={added ? 1 : 0.75}
-                    >
-                      <Text style={{ fontSize: 22, marginRight: 12 }}>{t.icon}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.templateLabel}>{t.label}</Text>
-                        <Text style={styles.templateDesc}>{t.description}</Text>
-                        <Text style={styles.templateCount}>Max {t.maxDays} days · Warn at {t.warnAt}d</Text>
-                      </View>
-                      {added
-                        ? <View style={styles.addedBadge}><Text style={styles.addedText}>Added</Text></View>
-                        : <Ionicons name="add-circle-outline" size={22} color={colors.primaryLight} />
-                      }
-                    </TouchableOpacity>
-                  );
-                });
+                return blocks;
               })()}
             </ScrollView>
           </View>
