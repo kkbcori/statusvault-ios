@@ -1048,7 +1048,7 @@ const styles = StyleSheet.create({
 
   // Modal
   modalOverlay:    { flex: 1, backgroundColor: 'rgba(3,8,18,0.80)', justifyContent: IS_WEB ? 'center' : 'flex-end', alignItems: IS_WEB ? 'center' as any : 'stretch' as any },
-  modalSheet:      { backgroundColor: '#0C1A34', borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, maxHeight: IS_WEB ? '90%' as any : '92%', height: IS_WEB ? 620 : undefined, maxWidth: IS_WEB ? 520 : undefined, width: IS_WEB ? 520 : '100%' as any, paddingBottom: 8, overflow: 'hidden', borderRadius: IS_WEB ? radius.xl : undefined, display: IS_WEB ? 'flex' as any : undefined, flexDirection: 'column', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any) : {}) } as any,
+  modalSheet:      { backgroundColor: '#0C1A34', borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl, ...(IS_WEB ? { maxHeight: '90%' as any, height: 620 } : { height: '92%' as any }), maxWidth: IS_WEB ? 520 : undefined, width: IS_WEB ? 520 : '100%' as any, paddingBottom: 8, overflow: 'hidden', borderRadius: IS_WEB ? radius.xl : undefined, display: IS_WEB ? 'flex' as any : undefined, flexDirection: 'column', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...(Platform.OS === 'web' ? ({ boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any) : {}) } as any,
   modalTrim:       { height: 3, backgroundColor: '#6FAFF2' },
   modalHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
   modalClose:      { padding: 4 },

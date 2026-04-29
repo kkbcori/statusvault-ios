@@ -483,7 +483,11 @@ const styles = StyleSheet.create({
   modalSheet: {
     backgroundColor: '#0C1A34',
     borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl,
-    maxHeight: IS_WEB ? '80%' as any : '85%',
+    // Native iOS/Android: use explicit `height` (not `maxHeight`), otherwise the
+    // sheet collapses to its header's intrinsic size when justifyContent='flex-end',
+    // because RN's iOS layout doesn't grow flex children inside a maxHeight-only parent.
+    // Web keeps `maxHeight: 80%` because CSS flexbox handles it correctly there.
+    ...(IS_WEB ? { maxHeight: '80%' as any } : { height: '85%' as any }),
     paddingBottom: 40,
     width: IS_WEB ? 480 : '100%' as any,
     borderRadius: IS_WEB ? radius.xl : undefined,
