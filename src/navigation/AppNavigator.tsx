@@ -278,7 +278,7 @@ const WebSidebar: React.FC = () => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={sidebarStyles.upgradeRowTitle}>Upgrade to Premium</Text>
-            <Text style={sidebarStyles.upgradeRowSub}>Unlimited · from $0.49/mo</Text>
+            <Text style={sidebarStyles.upgradeRowSub}>Unlimited · $3.99 one-time</Text>
           </View>
           <Ionicons name="arrow-forward" size={13} color={colors.gold} />
         </TouchableOpacity>

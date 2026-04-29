@@ -21,6 +21,7 @@ import { UserDocument } from '../types';
 import { useDialog } from '../components/ConfirmDialog';
 import { AnimatedEmptyIcon } from '../components/AnimatedEmptyIcon';
 import { NotificationBell } from '../components/NotificationBell';
+import { PremiumUpsellBanner } from '../components/PremiumUpsellBanner';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 
 // Fixed card height — all tall dashboard cards share this
@@ -383,6 +384,9 @@ export const DashboardScreen: React.FC = () => {
           </LinearGradient>
         </View>
       )}
+
+      {/* ── Premium upsell banner (hidden for premium users) ── */}
+      <PremiumUpsellBanner />
 
       {/* ── Email verified banner ── */}
       {authUser && emailVerified && (

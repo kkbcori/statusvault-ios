@@ -78,7 +78,7 @@ export const WelcomeModal: React.FC<Props> = ({ visible, onGuest, onCreateAccoun
           <View style={s.premiumRow}>
             <Ionicons name="star" size={13} color={colors.gold} />
             <Text style={s.premiumTxt}>
-              <Text style={{ fontFamily: 'Inter_700Bold', color: colors.gold }}>Premium from $0.49/mo — </Text>
+              <Text style={{ fontFamily: 'Inter_700Bold', color: colors.gold }}>Premium $3.99 one-time — </Text>
               Unlimited docs · family · PDF export · AES-256 encrypted cloud backup
             </Text>
           </View>

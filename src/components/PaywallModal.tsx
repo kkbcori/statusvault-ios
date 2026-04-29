@@ -1,39 +1,20 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore, FREE_LIMIT } from '../store';
 
-const PLANS = [
-  {
-    id:       'monthly',
-    label:    'Monthly',
-    price:    '$0.49',
-    period:   'per month',
-    note:     'Billed monthly · Cancel anytime',
-    badge:    null,
-    popular:  false,
-  },
-  {
-    id:       'yearly',
-    label:    'Yearly',
-    price:    '$4.99',
-    period:   'per year',
-    note:     'Just $0.42/month · Save 15%',
-    badge:    'BEST VALUE',
-    popular:  true,
-  },
-] as const;
-
-type PlanId = 'monthly' | 'yearly';
+const PRICE     = '$3.99';
+const PRICE_TAG = 'one-time';
 
 const FEATURES = [
-  { icon: 'documents-outline'      as const, text: 'Unlimited documents for you & family'  },
-  { icon: 'people-outline'         as const, text: 'Unlimited family members & their docs'  },
-  { icon: 'checkbox-outline'       as const, text: 'Unlimited checklists & immi timers'     },
-  { icon: 'document-text-outline'  as const, text: 'PDF export — N-400, I-485 & all docs'  },
-  { icon: 'cloud-outline'          as const, text: 'AES-256 encrypted cloud backup'         },
-  { icon: 'notifications-outline'  as const, text: 'Smart alerts at 6mo · 3mo · 1mo · 7d'  },
+  { icon: 'documents-outline'        as const, text: 'Unlimited documents for you & family'  },
+  { icon: 'people-outline'           as const, text: 'Unlimited family members & their docs'  },
+  { icon: 'checkbox-outline'         as const, text: 'Unlimited checklists & immi timers'     },
+  { icon: 'document-text-outline'    as const, text: 'PDF export — N-400, I-485 & all docs'  },
+  { icon: 'cloud-outline'            as const, text: 'AES-256 encrypted cloud backup'         },
+  { icon: 'notifications-outline'    as const, text: 'Smart alerts at 6mo · 3mo · 1mo · 7d'  },
+  { icon: 'shield-checkmark-outline' as const, text: 'No ads, ever'                           },
 ];
 
 interface Props {
@@ -45,9 +26,6 @@ interface Props {
 export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) => {
   const documents  = useStore(s => s.documents);
   const atLimit    = documents.length >= FREE_LIMIT;
-  const [plan, setPlan] = useState<PlanId>('yearly');
-
-  const selected = PLANS.find(p => p.id === plan)!;
 
   return (
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent>
@@ -83,36 +61,23 @@ export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) =>
             </Text>
           </LinearGradient>
 
-          {/* White body */}
+          {/* Body */}
           <View style={s.body}>
 
-            {/* Plan selector */}
-            <View style={s.planRow}>
-              {PLANS.map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[s.planCard, plan === p.id && s.planCardActive]}
-                  onPress={() => setPlan(p.id)}
-                  activeOpacity={0.85}
-                >
-                  {p.badge && (
-                    <View style={s.planBadge}>
-                      <Text style={s.planBadgeTxt}>{p.badge}</Text>
-                    </View>
-                  )}
-                  <Text style={[s.planLabel, plan === p.id && s.planLabelActive]}>{p.label}</Text>
-                  <Text style={[s.planPrice, plan === p.id && s.planPriceActive]}>{p.price}</Text>
-                  <Text style={[s.planPeriod, plan === p.id && s.planPeriodActive]}>{p.period}</Text>
-                  {plan === p.id && (
-                    <View style={s.planCheck}>
-                      <Ionicons name="checkmark-circle" size={16} color="#6FAFF2" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
+            {/* Single price card */}
+            <View style={s.priceCard}>
+              <View style={s.priceBadge}>
+                <Text style={s.priceBadgeTxt}>ONE-TIME PURCHASE</Text>
+              </View>
+              <View style={s.priceRow}>
+                <Text style={s.priceAmount}>{PRICE}</Text>
+                <View style={{ marginLeft: 6 }}>
+                  <Text style={s.pricePeriod}>{PRICE_TAG}</Text>
+                  <Text style={s.priceSub}>no subscription</Text>
+                </View>
+              </View>
+              <Text style={s.priceNote}>Pay once · Yours forever · Across all your devices</Text>
             </View>
-
-            <Text style={s.planNote}>{selected.note}</Text>
 
             {/* Feature list */}
             <View style={s.featureList}>
@@ -131,12 +96,12 @@ export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) =>
               <LinearGradient colors={['#6FAFF2', '#3B8BE8']} style={s.ctaGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
                 <Ionicons name="star" size={15} color="#FCD34D" />
                 <Text style={s.ctaTxt}>
-                  Unlock Premium — {selected.price}{plan === 'monthly' ? '/mo' : '/yr'}
+                  Unlock Premium — {PRICE}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            <Text style={s.legal}>Cancel anytime · Secure payment · AES-256 encrypted</Text>
+            <Text style={s.legal}>One-time payment · Secure checkout · AES-256 encrypted</Text>
           </View>
         </View>
       </View>
@@ -167,20 +132,20 @@ const s = StyleSheet.create({
 
   body:       { backgroundColor: '#0C1A34', padding: 20 },
 
-  // Plan selector
-  planRow:    { flexDirection: 'row', gap: 10, marginBottom: 8 } as any,
-  planCard:   { flex: 1, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: 12, alignItems: 'center', position: 'relative' as any, backgroundColor: 'rgba(255,255,255,0.04)' } as any,
-  planCardActive: { borderColor: '#6FAFF2', backgroundColor: 'rgba(59,139,232,0.14)' },
-  planBadge:  { position: 'absolute' as any, top: -10, backgroundColor: '#6FAFF2', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3 },
-  planBadgeTxt:{ fontSize: 8, fontFamily: 'Inter_800ExtraBold', color: '#fff', letterSpacing: 0.8 },
-  planLabel:  { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: 'rgba(240,244,255,0.55)', marginBottom: 4, marginTop: 4 },
-  planLabelActive: { color: '#6FAFF2' },
-  planPrice:  { fontSize: 26, fontFamily: 'Inter_900Black', color: '#F0F4FF', letterSpacing: -1 },
-  planPriceActive: { color: '#6FAFF2' },
-  planPeriod: { fontSize: 10, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)', marginTop: 2 },
-  planPeriodActive: { color: '#6FAFF2' },
-  planCheck:  { position: 'absolute' as any, top: 8, right: 8 },
-  planNote:   { fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)', textAlign: 'center', marginBottom: 14 },
+  // Single price card
+  priceCard:  {
+    borderWidth: 1.5, borderColor: '#6FAFF2',
+    backgroundColor: 'rgba(59,139,232,0.14)',
+    borderRadius: 14, padding: 16, marginBottom: 16,
+    alignItems: 'center', position: 'relative' as any,
+  } as any,
+  priceBadge: { position: 'absolute' as any, top: -10, backgroundColor: '#6FAFF2', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 },
+  priceBadgeTxt: { fontSize: 9, fontFamily: 'Inter_800ExtraBold', color: '#fff', letterSpacing: 0.8 },
+  priceRow:   { flexDirection: 'row', alignItems: 'baseline', marginTop: 8 } as any,
+  priceAmount:{ fontSize: 42, fontFamily: 'Inter_900Black', color: '#6FAFF2', letterSpacing: -1.5, lineHeight: 46 },
+  pricePeriod:{ fontSize: 12, fontFamily: 'Inter_700Bold', color: '#6FAFF2', marginBottom: 1 },
+  priceSub:   { fontSize: 10, fontFamily: 'Inter_500Medium', color: 'rgba(111,175,242,0.65)' },
+  priceNote:  { fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.65)', textAlign: 'center', marginTop: 8 },
 
   // Features
   featureList:{ marginBottom: 14, gap: 2 } as any,

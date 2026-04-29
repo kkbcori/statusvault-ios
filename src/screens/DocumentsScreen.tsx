@@ -22,7 +22,7 @@ import { useRoute } from '@react-navigation/native';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 import { AnimatedEmptyIcon } from '../components/AnimatedEmptyIcon';
 
-const PRICE_LABEL = '$0.49/mo or $4.99/yr';
+const PRICE_LABEL = '$3.99 one-time';
 
 export const DocumentsScreen: React.FC = () => {
   const route              = useRoute<any>();
@@ -488,10 +488,10 @@ export const DocumentsScreen: React.FC = () => {
             {/* Price block */}
             <View style={styles.paywallPriceBlock}>
               <View style={styles.paywallPriceRow}>
-                <Text style={styles.paywallPrice}>$0.49</Text>
+                <Text style={styles.paywallPrice}>$3.99</Text>
                 <View style={styles.paywallPriceSide}>
-                  <Text style={styles.paywallPeriod}>/ month</Text>
-                  <Text style={styles.paywallPriceNote}>or $4.99/year · Save 15%</Text>
+                  <Text style={styles.paywallPeriod}>one-time</Text>
+                  <Text style={styles.paywallPriceNote}>Pay once · Yours forever</Text>
                 </View>
               </View>
             </View>
@@ -505,11 +505,11 @@ export const DocumentsScreen: React.FC = () => {
               activeOpacity={0.85}
             >
               <LinearGradient colors={[colors.primary, colors.primaryLight, colors.primary]} style={styles.paywallCTAGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Text style={styles.paywallCTAText}>Subscribe — {PRICE_LABEL}</Text>
+                <Text style={styles.paywallCTAText}>Unlock Premium — {PRICE_LABEL}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
-            <Text style={styles.paywallLegal}>Cancel anytime · Secure payment via App Store</Text>
+            <Text style={styles.paywallLegal}>One-time payment · Secure checkout</Text>
           </View>
           </LinearGradient>
         </View>

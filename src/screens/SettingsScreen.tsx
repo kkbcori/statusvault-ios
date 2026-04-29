@@ -20,7 +20,7 @@ import { requestPermissions, cancelAllNotifications, sendTestNotification, getSc
 import { PinSetupModal } from '../components/PinSetupModal';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 
-const PRICE_YEAR = '$0.49/mo or $4.99/yr';
+const PRICE_YEAR = '$3.99 one-time';
 
 // ─── Section Label with Ionicon ──────────────────────────────
 interface SectionLabelProps {
@@ -634,14 +634,14 @@ export const SettingsScreen: React.FC = () => {
               <Text style={{ fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.75)' }}>{f}</Text>
             </View>
           ))}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, marginBottom: 4, gap: 4 }}>
-            <Text style={styles.premPrice}>$0.49</Text>
-            <Text style={styles.premPeriod}>/month</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, marginBottom: 4, gap: 6 }}>
+            <Text style={styles.premPrice}>$3.99</Text>
+            <Text style={styles.premPeriod}>one-time</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16, gap: 8 }}>
-            <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)' }}>or $4.99/year</Text>
+            <Text style={{ fontSize: 12, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.55)' }}>Pay once · Yours forever</Text>
             <View style={{ backgroundColor: 'rgba(76,217,138,0.18)', borderWidth: 1, borderColor: 'rgba(76,217,138,0.35)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
-              <Text style={{ fontSize: 9, fontFamily: 'Inter_800ExtraBold', color: '#4CD98A', letterSpacing: 0.5 }}>SAVE 15%</Text>
+              <Text style={{ fontSize: 9, fontFamily: 'Inter_800ExtraBold', color: '#4CD98A', letterSpacing: 0.5 }}>NO SUBSCRIPTION</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.premBtn} onPress={() => dialog.confirm({ title: 'Coming Soon', message: 'In-app purchase available soon.', type: 'confirm', confirmLabel: 'Unlock for Testing', cancelLabel: 'Cancel', onConfirm: () => setPremium(true) })}>
