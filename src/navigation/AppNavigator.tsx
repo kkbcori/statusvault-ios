@@ -10,7 +10,7 @@ import {
   ImageBackground, Modal,
 } from 'react-native';
 import { NavigationContainer, useNavigation, useNavigationState, useIsFocused } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -464,7 +464,10 @@ const MainTabs: React.FC = () => {
           />
         )}
 
-        {/* Foreground layout */}
+        {/* Foreground layout — on native iOS/Android, top edge SafeAreaView
+            adds notch/status-bar inset. On web it's a no-op. The background
+            image layer above stays edge-to-edge regardless. */}
+        <SafeAreaView edges={Platform.OS === 'web' ? [] : ['top']} style={{ flex: 1 }}>
         <View style={[layoutStyles.innerRow, showSidebar && layoutStyles.innerRowDesktop]}>
           {showSidebar && <WebSidebar />}
           <View style={[layoutStyles.content, showSidebar ? layoutStyles.contentDesktop : IS_WEB ? layoutStyles.contentMobileWeb : undefined]}>
@@ -502,6 +505,7 @@ const MainTabs: React.FC = () => {
             </View>
           </View>
         </View>
+        </SafeAreaView>
       </View>
 
       {/* Magic link processing overlay */}
