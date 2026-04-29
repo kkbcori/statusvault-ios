@@ -117,6 +117,11 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
           setError('Unable to open browser for Google sign-in.');
           return;
         }
+        // Brief delay to let Supabase flush the PKCE code_verifier to AsyncStorage
+        // before we leave the app. Without this there's a race: we open Safari,
+        // user authenticates fast, comes back, but the verifier write hasn't
+        // committed — exchangeCodeForSession then fails silently.
+        await new Promise<void>(r => setTimeout(r, 250));
         await Linking.openURL(data.url);
         // Don't close the modal — wait for deep-link return to set authUser.
         // The modal will close automatically via onAuthStateChange listener.
