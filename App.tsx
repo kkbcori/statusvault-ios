@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { AppNavigator } from './src/navigation';
 import { configureNotifications, clearAppBadge } from './src/utils/notifications';
+import { registerDeepLinkHandler } from './src/utils/deepLinkHandler';
 import { useStore } from './src/store';
 import { colors } from './src/theme';
 import { PinLockScreen } from './src/components/PinLockScreen';
@@ -233,10 +234,16 @@ export default function App() {
       });
     }
 
+    // Register deep-link handler for magic-link / OAuth callbacks on native.
+    // Catches statusvault://auth?... URLs and feeds tokens into Supabase.
+    // Safe no-op on web (returns identity cleanup).
+    const unregisterDeepLinks = registerDeepLinkHandler();
+
     return () => {
       clearTimeout(authTimeout);
       clearTimeout(hydrateTimeout);
       appStateSub?.remove?.();
+      unregisterDeepLinks();
     };
   }, []);
 

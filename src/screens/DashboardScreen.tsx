@@ -351,9 +351,10 @@ export const DashboardScreen: React.FC = () => {
                 </View>
                 <Text style={styles.mobileSub}>Immigration Tracker</Text>
               </View>
-              {/* Top-right action cluster: search + notification bell.
+              {/* Top-right action cluster: search + bell + user.
                   Bell is self-contained — it opens its own modal panel.
-                  Search icon delegates to the global SearchModal via openSearch() store action. */}
+                  Search icon delegates to the global SearchModal via openSearch() store action.
+                  User button: signed-in → profile modal; guest → auth modal. */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <TouchableOpacity
                   style={styles.heroIconBtn}
@@ -364,6 +365,22 @@ export const DashboardScreen: React.FC = () => {
                   <Ionicons name="search" size={17} color="rgba(240,244,255,0.78)" />
                 </TouchableOpacity>
                 <NotificationBell />
+                <TouchableOpacity
+                  style={styles.heroIconBtn}
+                  onPress={() =>
+                    authUser
+                      ? useStore.getState().openProfileModal()
+                      : useStore.getState().openAuthModal('Sign in to access your profile and sync documents')
+                  }
+                  activeOpacity={0.7}
+                  accessibilityLabel={authUser ? 'Open profile' : 'Sign in'}
+                >
+                  <Ionicons
+                    name={authUser ? 'person' : 'person-outline'}
+                    size={17}
+                    color={authUser ? '#6FAFF2' : 'rgba(240,244,255,0.78)'}
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
