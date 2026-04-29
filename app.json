@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "StatusVault — Immigration Document Tracker",
+    "slug": "statusvault-web",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050B1C"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.statusvault.app",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "StatusVault needs notifications to alert you before visa deadlines expire.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": [
+          "mailto"
+        ]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#050B1C"
+      },
+      "package": "com.statusvault.app",
+      "permissions": [
+        "NOTIFICATIONS",
+        "SCHEDULE_EXACT_ALARM",
+        "VIBRATE"
+      ],
+      "versionCode": 1
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#3B8BE8",
+          "sounds": [],
+          "defaultChannel": "deadlines"
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-document-picker"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single",
+      "name": "StatusVault — Immigration Document Tracker",
+      "description": "Track visas, passports, work permits and travel history for immigration. 100% private, AES-256 encrypted sync.",
+      "shortName": "StatusVault"
+    },
+    "experiments": {
+      "baseUrl": "/"
+    },
+    "entryPoint": "./index.ts",
+    "scheme": "statusvault",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "57802922-08c5-4117-96dd-30d1e788a73b"
+      }
+    },
+    "owner": "kkbcori"
+  }
+}

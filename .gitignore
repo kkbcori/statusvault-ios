@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+*.apps.googleusercontent.com.json
+client_secret*.json
+GoogleAccount*.json
+*.env
+.env.local
+.DS_Store
+
+# Native build credentials — never commit these
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
+eas-credentials/
+
+# Local env overrides
+.env.production
+.env.development
+
+# Build artifacts
+android/
+ios/

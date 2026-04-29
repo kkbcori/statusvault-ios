@@ -1,0 +1,109 @@
+# ═══════════════════════════════════════════════════════════════
+# StatusVault — iOS TestFlight Auto-Deploy
+# Builds the iOS app on EAS and submits it to TestFlight on every
+# push to `main`. Also runnable manually via "Run workflow" button.
+# ═══════════════════════════════════════════════════════════════
+
+name: iOS TestFlight
+
+on:
+  push:
+    branches: [main]
+    # Skip iOS rebuild for changes that only affect web / docs / scripts
+    paths-ignore:
+      - 'web/**'
+      - 'docs/**'
+      - 'public/**'
+      - 'scripts/**'
+      - 'supabase/**'
+      - '**/*.md'
+      - '.github/workflows/deploy.yml'
+      - '.github/workflows/check_links.yml'
+      - '.github/workflows/update_checklists.yml'
+  workflow_dispatch:
+    inputs:
+      submit_to_testflight:
+        description: 'Submit build to TestFlight after build completes?'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  ios-build-and-submit:
+    name: Build iOS · Submit to TestFlight
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          for i in 1 2 3; do
+            npm install && break
+            echo "npm install failed (attempt $i), retrying in 15s..."
+            sleep 15
+          done
+
+      - name: Verify EAS authentication
+        run: eas whoami
+
+      - name: Build iOS (production profile, non-interactive)
+        run: |
+          eas build \
+            --platform ios \
+            --profile production \
+            --non-interactive \
+            --no-wait=false \
+            --wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Submit latest iOS build to TestFlight
+        if: ${{ github.event_name == 'push' || github.event.inputs.submit_to_testflight == 'true' }}
+        run: |
+          eas submit \
+            --platform ios \
+            --profile production \
+            --latest \
+            --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Either app-specific password OR App Store Connect API key.
+          # Recommended: API key (set the three EXPO_APPLE_APP_STORE_CONNECT_API_KEY_* below).
+          EXPO_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.APPLE_API_KEY_CONTENT }}
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "════════════════════════════════════════════════════"
+          echo " iOS TestFlight pipeline complete"
+          echo "════════════════════════════════════════════════════"
+          echo " Trigger: ${{ github.event_name }}"
+          echo " Commit:  ${{ github.sha }}"
+          echo " Status:  ${{ job.status }}"
+          echo "════════════════════════════════════════════════════"
+          echo " Next: open App Store Connect > TestFlight to find"
+          echo " the build (usually appears 5-15 min after submit)."
+          echo "════════════════════════════════════════════════════"
