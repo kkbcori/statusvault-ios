@@ -160,12 +160,20 @@ export const NotificationBell: React.FC = () => {
                       </Text>
                       <Text style={s.date}>Expires {n.expiryDate}</Text>
                     </View>
-                    <View style={{ flexDirection: 'column', gap: 2 } as any}>
-                      <TouchableOpacity onPress={() => n.read ? markUnread(n.id) : markRead(n.id)} style={s.actBtn}>
-                        <Ionicons name={n.read ? 'mail-outline' : 'mail-open-outline'} size={14} color="rgba(240,244,255,0.45)" />
+                    <View style={{ flexDirection: 'row', gap: 6, alignSelf: 'center' } as any}>
+                      <TouchableOpacity
+                        onPress={() => n.read ? markUnread(n.id) : markRead(n.id)}
+                        style={s.actBtn}
+                        accessibilityLabel={n.read ? 'Mark as unread' : 'Mark as read'}
+                      >
+                        <Ionicons name={n.read ? 'mail-outline' : 'mail-open-outline'} size={16} color="rgba(240,244,255,0.65)" />
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => remove(n.id)} style={s.actBtn}>
-                        <Ionicons name="close" size={14} color="rgba(240,244,255,0.45)" />
+                      <TouchableOpacity
+                        onPress={() => remove(n.id)}
+                        style={s.dismissBtn}
+                        accessibilityLabel="Dismiss notification"
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#FF6B6B" />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -203,5 +211,16 @@ const s = StyleSheet.create({
   famTxt:    { fontSize: 9, fontFamily: 'Inter_600SemiBold', color: '#3B8BE8' },
   msg:       { fontSize: 12, fontFamily: 'Inter_500Medium', color: '#F0F4FF', lineHeight: 17 },
   date:      { fontSize: 10, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)' },
-  actBtn:    { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' },
+  actBtn:    {
+    width: 32, height: 32, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)',
+  },
+  dismissBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,107,107,0.10)',
+    borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)',
+  },
 });
