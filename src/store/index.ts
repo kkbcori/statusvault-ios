@@ -16,6 +16,7 @@ import { CHECKLIST_TEMPLATES } from '../utils/checklists';
 import { COUNTER_TEMPLATES } from '../utils/counters';
 import { platformStorage } from '../utils/storage';
 import { supabase, SUPABASE_SESSION_KEY } from '../utils/supabase';
+import { dlog } from '../utils/debugLog';
 import { deriveKey, encryptData, decryptData } from '../utils/crypto';
 
 // Guest limits (no account)
@@ -886,8 +887,34 @@ export const useStore = create<AppStore>()(
           if (!_visibilityListenerRegistered) {
             _visibilityListenerRegistered = true;
             const { AppState } = require('react-native');
-            AppState.addEventListener('change', (nextState: string) => {
+            AppState.addEventListener('change', async (nextState: string) => {
               if (nextState === 'active') {
+                // Critical fix: re-sync auth state from Supabase on foreground.
+                // This catches the case where the user signs in via Safari (Google OAuth)
+                // and returns to the app — onAuthStateChange may have missed the SIGNED_IN
+                // event due to timing, but Supabase's storage now has the session, so we
+                // pull it manually here to keep the store in sync.
+                try {
+                  dlog('[AppState] active — checking Supabase session');
+                  const { data } = await supabase.auth.getSession();
+                  const sbUser = data?.session?.user;
+                  const storeAuth = useStore.getState().authUser;
+                  if (sbUser && !storeAuth) {
+                    dlog('[AppState] desync detected — syncing authUser from Supabase');
+                    useStore.setState({
+                      authUser: { id: sbUser.id, email: sbUser.email!, createdAt: sbUser.created_at },
+                      isGuestMode: false,
+                      hasOnboarded: true,
+                      showWelcomeModal: false,
+                      showAuthModal: false,
+                    });
+                  } else if (!sbUser && storeAuth) {
+                    dlog('[AppState] stale store auth — clearing');
+                    useStore.setState({ authUser: null });
+                  }
+                } catch (e: any) {
+                  dlog('[AppState] session check failed:', e?.message ?? e);
+                }
                 const s = useStore.getState();
                 if (s.authUser && s.isPremium && s.cloudBackupEnabled) {
                   s.syncFromCloud().catch(() => {});
@@ -938,7 +965,9 @@ export const useStore = create<AppStore>()(
         }
 
         // Listen for ALL auth changes — covers OAuth redirects, sign in, sign out
+        try { dlog('[initAuth] registering onAuthStateChange listener'); } catch {}
         supabase.auth.onAuthStateChange(async (event, session) => {
+          try { dlog('[onAuthStateChange] event:', event, 'hasSession:', !!session, 'userEmail:', session?.user?.email ?? 'none'); } catch {}
           if (session?.user) {
             set({
               authUser: {
@@ -947,6 +976,7 @@ export const useStore = create<AppStore>()(
                 createdAt: session.user.created_at,
               },
             });
+            try { dlog('[onAuthStateChange] authUser set in store'); } catch {}
             // Clean auth params from URL after successful sign-in
             // Covers both implicit (#access_token=) and PKCE (?code=) formats
             if (event === 'SIGNED_IN' && typeof window !== 'undefined') {
@@ -1003,7 +1033,9 @@ export const useStore = create<AppStore>()(
 
         // Check existing session on startup (page refresh)
         try {
+          try { dlog('[initAuth] calling getSession on startup'); } catch {}
           const { data: { session } } = await supabase.auth.getSession();
+          try { dlog('[initAuth] getSession result hasSession:', !!session, 'userEmail:', session?.user?.email ?? 'none'); } catch {}
           if (session?.user) {
             initialSyncDone = true;
             // Set hasOnboarded FIRST so welcome modal never shows for logged-in users
@@ -1017,9 +1049,33 @@ export const useStore = create<AppStore>()(
               showWelcomeModal: false,
               isGuestMode: false,
             });
+            try { dlog('[initAuth] authUser set from startup getSession'); } catch {}
             try { await get().syncFromCloud(); } catch {}
+          } else {
+            // First check returned no session — but Supabase's AsyncStorage hydration
+            // is async and may not have completed yet. Retry once after 500ms.
+            setTimeout(async () => {
+              try {
+                const { data } = await supabase.auth.getSession();
+                if (data?.session?.user && !get().authUser) {
+                  dlog('[initAuth] delayed retry found session — syncing to store');
+                  set({
+                    authUser: {
+                      id: data.session.user.id,
+                      email: data.session.user.email!,
+                      createdAt: data.session.user.created_at,
+                    },
+                    hasOnboarded: true,
+                    showWelcomeModal: false,
+                    isGuestMode: false,
+                  });
+                }
+              } catch {}
+            }, 500);
           }
-        } catch {}
+        } catch (e: any) {
+          try { dlog('[initAuth] getSession threw:', e?.message ?? e); } catch {}
+        }
       },
 
       // ─── Sync ──────────────────────────────────────────────

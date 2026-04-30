@@ -324,8 +324,16 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
 };
 
 const s = StyleSheet.create({
-  overlay:    { position: 'fixed' as any, inset: 0, zIndex: 2000, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)' } as any,
-  backdrop:   { position: 'absolute' as any, inset: 0 } as any,
+  // Native (iOS/Android): Modal already creates a fullscreen presentation.
+  // We just need to fill it; absoluteFillObject is the cross-platform way.
+  // Web: position:fixed needed for backdrop-style overlay since the Modal
+  // compiles to a positioned div, not a native fullscreen view.
+  overlay:    IS_WEB
+    ? { position: 'fixed' as any, inset: 0, zIndex: 2000, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)' } as any
+    : { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)', padding: 16 } as any,
+  backdrop:   IS_WEB
+    ? { position: 'absolute' as any, inset: 0 } as any
+    : { ...StyleSheet.absoluteFillObject } as any,
   panel:      { width: '100%', maxWidth: 520, maxHeight: '90%' as any, backgroundColor: '#0C1A34', borderRadius: 16, overflow: 'hidden', display: 'flex' as any, flexDirection: 'column', zIndex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...Platform.select({ web: { boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any }) } as any,
   sheet:      { flex: 1, display: 'flex' as any, flexDirection: 'column' },
   header:     { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderBottomWidth: 1, borderBottomColor: 'transparent' },
