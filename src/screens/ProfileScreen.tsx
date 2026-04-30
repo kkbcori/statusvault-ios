@@ -145,7 +145,7 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
     setPerm(p.perm ?? 'Not started');
   }, [visible]); // reload each time modal opens
 
-  const handleSave = () => {
+  const handleSave = (closeAfter: boolean = false) => {
     setImmigrationProfile({
       firstName, lastName, phone, country, location,
       visaType, startYear, statusExpiry, i94,
@@ -153,7 +153,18 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
       gcStage, priorityDate, ebCategory, i140Status, perm,
     });
     setSaved(true);
-    setTimeout(() => { setSaved(false); if (tab === 3) onClose?.(); }, 1500);
+    if (closeAfter) {
+      // Show "Saved!" briefly, then close. Use a separate timer for the visual
+      // reset vs the close so we're not depending on a single setTimeout chain.
+      setTimeout(() => {
+        setSaved(false);
+        if (typeof onClose === 'function') {
+          onClose();
+        }
+      }, 900);
+    } else {
+      setTimeout(() => setSaved(false), 1500);
+    }
   };
 
   const progress = [!!firstName, !!visaType, gcStage !== GC_STAGES[0]].filter(Boolean).length;
@@ -171,12 +182,6 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
         <View style={{ flex: 1 }}>
           <Text style={s.headerTitle}>Immigration Profile</Text>
           <Text style={s.headerSub}>All fields optional · saved locally</Text>
-        </View>
-        {/* Progress pips */}
-        <View style={s.pips}>
-          {[1,2,3].map(i => (
-            <View key={i} style={[s.pip, { backgroundColor: i <= progress ? '#6FAFF2' : 'rgba(255,255,255,0.10)', width: i <= progress ? 28 : 16 }]} />
-          ))}
         </View>
         {onClose && (
           <TouchableOpacity onPress={onClose} style={s.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -290,7 +295,7 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
 
         <TouchableOpacity
           style={[s.footerSave, { backgroundColor: saved ? '#4CD98A' : '#6FAFF2' }]}
-          onPress={tab === 3 ? handleSave : () => { handleSave(); setTab((tab + 1) as Tab); }}
+          onPress={tab === 3 ? () => handleSave(true) : () => { handleSave(false); setTab((tab + 1) as Tab); }}
         >
           <Ionicons name={saved ? 'checkmark-circle' : 'save-outline'} size={16} color="#fff" />
           <Text style={s.footerSaveTxt}>

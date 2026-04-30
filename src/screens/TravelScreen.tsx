@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, TextInput, Platform, FlatList, KeyboardAvoidingView, Animated,
+  Modal, TextInput, Platform, FlatList, KeyboardAvoidingView, Keyboard, Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,7 +57,15 @@ const DateField: React.FC<DateFieldProps> = ({ label, value, onPress, onChange }
         } as any}
       />
     ) : (
-      <TouchableOpacity style={styles.dateButton} onPress={onPress}>
+      <TouchableOpacity
+        style={styles.dateButton}
+        onPress={() => {
+          // Dismiss keyboard before showing date picker so the spinner isn't
+          // hidden behind the keyboard. The user has reported this exact issue.
+          Keyboard.dismiss();
+          onPress();
+        }}
+      >
         <Text style={styles.dateButtonText}>
           {value.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </Text>

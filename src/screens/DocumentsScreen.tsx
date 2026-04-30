@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, FlatList, TextInput, Alert, Platform, KeyboardAvoidingView, Animated,
+  Modal, FlatList, TextInput, Alert, Platform, KeyboardAvoidingView, Keyboard, Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useStore, FREE_LIMIT } from '../store';
@@ -406,7 +406,7 @@ export const DocumentsScreen: React.FC = () => {
                   </View>
                 ) : (
                   <>
-                    <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+                    <TouchableOpacity style={styles.dateButton} onPress={() => { Keyboard.dismiss(); setShowDatePicker(true); }}>
                       <Text style={styles.dateButtonText}>{expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</Text>
                       <Ionicons name="calendar-outline" size={20} color={'#6FAFF2'} />
                     </TouchableOpacity>

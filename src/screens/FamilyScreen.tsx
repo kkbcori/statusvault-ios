@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, FlatList, KeyboardAvoidingView, Platform, Animated,
+  TextInput, Modal, FlatList, KeyboardAvoidingView, Keyboard, Platform, Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -639,7 +639,7 @@ export const FamilyScreen: React.FC = () => {
                 <>
                   <TouchableOpacity
                     style={[styles.fieldInput, { marginBottom: showDocDatePicker ? spacing.sm : spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
-                    onPress={() => setShowDocDatePicker(true)}
+                    onPress={() => { Keyboard.dismiss(); setShowDocDatePicker(true); }}
                     activeOpacity={0.75}
                   >
                     <Text style={{ fontSize: 15, fontFamily: 'Inter_400Regular', color: docExpiry ? '#F0F4FF' : colors.text3 }}>

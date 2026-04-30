@@ -2,6 +2,13 @@
 // StatusVault — App Entry Point v16 · Midnight Glass
 // ═══════════════════════════════════════════════════════════════
 
+// CRITICAL: This polyfill MUST be imported before any crypto-using code.
+// React Native lacks crypto.getRandomValues by default; without this,
+// crypto-js's AES.encrypt fails with "Native crypto module could not
+// be used to get secure random number." On web it's a no-op since
+// the browser already has crypto.getRandomValues.
+import 'react-native-get-random-values';
+
 import React, { useEffect, useState } from 'react';
 import { StatusBar, LogBox, View, Text, Platform, Image } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
