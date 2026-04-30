@@ -151,6 +151,7 @@ interface AppStore {
   // Auth actions
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   sendMagicLink: (email: string) => Promise<{ error: string | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   setPassword: (password: string) => Promise<{ error: string | null }>;
@@ -174,6 +175,8 @@ interface AppStore {
   closeAuthModal: () => void;
   showPaywallModal: boolean;
   emailVerified: boolean;
+  passwordRecoveryActive: boolean;  // set true when Supabase fires PASSWORD_RECOVERY (web only)
+  setPasswordRecoveryActive: (v: boolean) => void;
   profileSetupShown: boolean;  // true after profile modal shown once
   pendingProfileSetup: boolean; // true if profile modal should show when MainTabs mounts
   cloudBackupEnabled: boolean;  // premium only — auto-sync to Supabase
@@ -315,6 +318,7 @@ export const useStore = create<AppStore>()(
       showAuthModal: false,
       authModalMessage: 'Sign in to continue',
       showPaywallModal: false,
+      passwordRecoveryActive: false,
       notificationsEnabled: true,
       notificationEmail: null,
       whatsappPhone: null,
@@ -705,6 +709,14 @@ export const useStore = create<AppStore>()(
             createdAt: user.created_at,
           },
         });
+        // Identify user to RevenueCat so any prior premium purchase (from
+        // another device with this same Supabase account) syncs to this device.
+        try {
+          const rc = await import('../utils/revenueCat');
+          await rc.identifyUser(user.id);
+          const isActive = await rc.fetchEntitlementState();
+          if (isActive === true && !get().isPremium) set({ isPremium: true });
+        } catch {}
         // Pull cloud data after sign-in — fire and forget so the sign-in promise
         // resolves immediately. If the sync hangs, the UI doesn't freeze. The
         // onAuthStateChange listener will also trigger a sync as a safety net.
@@ -780,6 +792,22 @@ export const useStore = create<AppStore>()(
         return { error: null };
       },
 
+      requestPasswordReset: async (email) => {
+        // The recovery link in the email points to the web app (statusvault.org).
+        // Native users open the link in Safari, complete the reset on web, then
+        // come back to the iOS app and sign in with their new password.
+        // This is the same pattern as email verification — avoids the iOS
+        // deep-link/Gmail-browser issues that broke our magic link attempt.
+        const redirectTo = Platform.OS === 'web'
+          ? (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+              ? window.location.origin
+              : 'https://www.statusvault.org')
+          : 'https://www.statusvault.org';
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) return { error: error.message };
+        return { error: null };
+      },
+
       signOut: async () => {
         // Flush any pending sync BEFORE signing out so latest data is in cloud
         const s = useStore.getState();
@@ -789,6 +817,12 @@ export const useStore = create<AppStore>()(
         }
         // Bug 62 fix: always clear local state even if signOut API call fails (offline)
         try { await supabase.auth.signOut(); } catch {}
+        // Sign out of RevenueCat so the next user on this device starts fresh.
+        // Without this, RC would keep the old user's appUserID and entitlements.
+        try {
+          const rc = await import('../utils/revenueCat');
+          await rc.logoutPurchases();
+        } catch {}
         // Bug 60a: clear isPremium so next user on same device doesn't inherit it
         // Privacy fix: clear ALL user data on sign-out — trips/addressHistory/docs must
         // not be visible if someone else opens the browser after you sign out.
@@ -968,6 +1002,12 @@ export const useStore = create<AppStore>()(
         try { dlog('[initAuth] registering onAuthStateChange listener'); } catch {}
         supabase.auth.onAuthStateChange(async (event, session) => {
           try { dlog('[onAuthStateChange] event:', event, 'hasSession:', !!session, 'userEmail:', session?.user?.email ?? 'none'); } catch {}
+          // Password recovery: Supabase fires this when a recovery link is processed.
+          // The user has a temporary session and can call updateUser to set a new
+          // password. Web shows the reset modal; native ignores (recovery only on web).
+          if (event === 'PASSWORD_RECOVERY') {
+            set({ passwordRecoveryActive: true });
+          }
           if (session?.user) {
             set({
               authUser: {
@@ -1299,6 +1339,7 @@ export const useStore = create<AppStore>()(
         set({ showPaywallModal: true });
       },
       closePaywall: () => set({ showPaywallModal: false }),
+      setPasswordRecoveryActive: (v) => set({ passwordRecoveryActive: v }),
       openProfileModal: () => { /* overridden by MainTabs */ },
       openSearch: () => { /* overridden by MainTabs */ },
       setOnboarded: () => set({ hasOnboarded: true }),

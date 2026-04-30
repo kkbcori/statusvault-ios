@@ -430,6 +430,16 @@ const MainTabs: React.FC = () => {
     }
   }, []);
 
+  // Password recovery: when Supabase fires PASSWORD_RECOVERY (web only), open
+  // the auth modal with a marker message that puts AuthModal into set-password
+  // mode so the user can choose a new password using their temporary recovery session.
+  const passwordRecoveryActive = useStore((s) => s.passwordRecoveryActive);
+  React.useEffect(() => {
+    if (passwordRecoveryActive) {
+      openAuthModal('Choose a new password to set on your account');
+    }
+  }, [passwordRecoveryActive, openAuthModal]);
+
   return (
     <>
       <View style={layoutStyles.root}>

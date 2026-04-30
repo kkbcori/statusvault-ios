@@ -216,7 +216,34 @@ export default function App() {
     useStore.getState().autoIncrementCounters();
     // Hard timeout — never let the app stay on loading screen
     const authTimeout = setTimeout(() => setAuthReady(true), 3000);
-    initAuth().finally(() => { clearTimeout(authTimeout); setAuthReady(true); });
+    initAuth().finally(() => {
+      clearTimeout(authTimeout);
+      setAuthReady(true);
+      // Initialize RevenueCat after auth resolves. If a user is signed in,
+      // their Supabase ID becomes the RC appUserID so entitlements sync
+      // across devices. If no user yet, RC starts anonymous and we logIn
+      // later via the store's onAuthStateChange handler.
+      if (Platform.OS !== 'web') {
+        const userId = useStore.getState().authUser?.id ?? null;
+        // Lazy import to keep the bundle clean on web
+        import('./src/utils/revenueCat').then(({ initializePurchases, onEntitlementChange, fetchEntitlementState }) => {
+          initializePurchases(userId).then(async () => {
+            // Bridge entitlement changes into the store
+            onEntitlementChange((isActive) => {
+              if (useStore.getState().isPremium !== isActive) {
+                useStore.setState({ isPremium: isActive });
+              }
+            });
+            // Initial fetch — covers the case where the user already owns
+            // premium from a prior install / device
+            const isActive = await fetchEntitlementState();
+            if (isActive === true && !useStore.getState().isPremium) {
+              useStore.setState({ isPremium: true });
+            }
+          });
+        });
+      }
+    });
     // Force hydration flag after 1s if onRehydrateStorage never fires (empty storage)
     const hydrateTimeout = setTimeout(() => {
       if (!useStore.getState()._hasHydrated) {

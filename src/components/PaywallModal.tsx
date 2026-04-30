@@ -1,11 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Image, ActivityIndicator, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore, FREE_LIMIT } from '../store';
+import {
+  isRevenueCatConfigured,
+  getCurrentOffering,
+  purchasePackage,
+  restorePurchases,
+} from '../utils/revenueCat';
 
-const PRICE     = '$3.99';
+const FALLBACK_PRICE = '$3.99';
 const PRICE_TAG = 'one-time';
+const IS_WEB = Platform.OS === 'web';
 
 const FEATURES = [
   { icon: 'documents-outline'        as const, text: 'Unlimited documents for you & family'  },
@@ -25,7 +32,108 @@ interface Props {
 
 export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) => {
   const documents  = useStore(s => s.documents);
+  const authUser   = useStore(s => s.authUser);
   const atLimit    = documents.length >= FREE_LIMIT;
+
+  const [pkg,       setPkg]       = useState<any>(null);
+  const [price,     setPrice]     = useState<string>(FALLBACK_PRICE);
+  const [busy,      setBusy]      = useState<'purchase'|'restore'|null>(null);
+  const [errorMsg,  setErrorMsg]  = useState<string | null>(null);
+
+  // Fetch the offering when the paywall opens (only on native + when RC configured)
+  useEffect(() => {
+    if (!visible || IS_WEB || !isRevenueCatConfigured()) return;
+    let cancelled = false;
+    getCurrentOffering().then((res) => {
+      if (cancelled || !res) return;
+      setPkg(res.pkg);
+      setPrice(res.priceString);
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  const showAlert = (title: string, message: string) => {
+    if (IS_WEB && typeof window !== 'undefined') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const handleUnlock = async () => {
+    setErrorMsg(null);
+    // Fall back to test-unlock when RC isn't configured yet (web, or before
+    // you've pasted the API key into revenueCatConfig.ts).
+    if (IS_WEB || !isRevenueCatConfigured()) {
+      onUnlock();
+      return;
+    }
+    // Real IAP flow requires a signed-in user so RC can attribute the purchase
+    // to a stable appUserID for cross-device sync.
+    if (!authUser) {
+      showAlert(
+        'Sign In Required',
+        'Please create an account or sign in before purchasing premium. This lets your purchase sync across all your devices.'
+      );
+      return;
+    }
+    if (!pkg) {
+      showAlert(
+        'Not Available',
+        'Premium isn\'t available right now. Please try again in a moment.'
+      );
+      return;
+    }
+    setBusy('purchase');
+    try {
+      const isActive = await purchasePackage(pkg);
+      if (isActive) {
+        onUnlock();
+      } else {
+        setErrorMsg('Purchase completed but premium not active. Please contact support.');
+      }
+    } catch (e: any) {
+      if (e?.message === 'CANCELLED') {
+        // User cancelled — no error to show
+      } else {
+        setErrorMsg(e?.message ?? 'Purchase failed. Please try again.');
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    setErrorMsg(null);
+    if (IS_WEB || !isRevenueCatConfigured()) {
+      showAlert('Not Available', 'Restore purchases is only available in the iOS app.');
+      return;
+    }
+    if (!authUser) {
+      showAlert(
+        'Sign In Required',
+        'Please sign in with the same account you used when you purchased premium.'
+      );
+      return;
+    }
+    setBusy('restore');
+    try {
+      const isActive = await restorePurchases();
+      if (isActive) {
+        showAlert('Restored', 'Your premium purchase has been restored.');
+        onUnlock();
+      } else {
+        showAlert(
+          'Nothing to Restore',
+          'We couldn\'t find a previous premium purchase for this Apple ID.'
+        );
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message ?? 'Restore failed. Please try again.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent>
@@ -70,7 +178,7 @@ export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) =>
                 <Text style={s.priceBadgeTxt}>ONE-TIME PURCHASE</Text>
               </View>
               <View style={s.priceRow}>
-                <Text style={s.priceAmount}>{PRICE}</Text>
+                <Text style={s.priceAmount}>{price}</Text>
                 <View style={{ marginLeft: 6 }}>
                   <Text style={s.pricePeriod}>{PRICE_TAG}</Text>
                   <Text style={s.priceSub}>no subscription</Text>
@@ -91,14 +199,47 @@ export const PaywallModal: React.FC<Props> = ({ visible, onClose, onUnlock }) =>
               ))}
             </View>
 
+            {/* Inline error */}
+            {errorMsg && (
+              <View style={s.errorBox}>
+                <Ionicons name="alert-circle-outline" size={14} color="#FF6B6B" />
+                <Text style={s.errorTxt}>{errorMsg}</Text>
+              </View>
+            )}
+
             {/* CTA */}
-            <TouchableOpacity style={s.cta} onPress={onUnlock} activeOpacity={0.88}>
+            <TouchableOpacity
+              style={[s.cta, busy && { opacity: 0.6 }]}
+              onPress={handleUnlock}
+              activeOpacity={0.88}
+              disabled={busy !== null}
+            >
               <LinearGradient colors={['#6FAFF2', '#3B8BE8']} style={s.ctaGrad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-                <Ionicons name="star" size={15} color="#FCD34D" />
-                <Text style={s.ctaTxt}>
-                  Unlock Premium — {PRICE}
-                </Text>
+                {busy === 'purchase' ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="star" size={15} color="#FCD34D" />
+                    <Text style={s.ctaTxt}>
+                      Unlock Premium — {price}
+                    </Text>
+                  </>
+                )}
               </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Restore button — Apple REQUIRES this for IAP apps */}
+            <TouchableOpacity
+              style={s.restoreBtn}
+              onPress={handleRestore}
+              activeOpacity={0.7}
+              disabled={busy !== null}
+            >
+              {busy === 'restore' ? (
+                <ActivityIndicator color="#6FAFF2" size="small" />
+              ) : (
+                <Text style={s.restoreTxt}>Restore Purchases</Text>
+              )}
             </TouchableOpacity>
 
             <Text style={s.legal}>One-time payment · Secure checkout · AES-256 encrypted</Text>
@@ -155,7 +296,16 @@ const s = StyleSheet.create({
 
   // CTA
   cta:        { borderRadius: 12, overflow: 'hidden', marginBottom: 10 },
-  ctaGrad:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
+  ctaGrad:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, minHeight: 48 },
   ctaTxt:     { fontSize: 15, fontFamily: 'Inter_800ExtraBold', color: '#fff', letterSpacing: 0.2 },
+
+  // Restore — Apple requires this button to be visible
+  restoreBtn: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 6, minHeight: 36 },
+  restoreTxt: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: '#6FAFF2' },
+
+  // Inline error
+  errorBox:   { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 10, marginBottom: 10, backgroundColor: 'rgba(255,107,107,0.10)', borderWidth: 1, borderColor: 'rgba(255,107,107,0.30)', borderRadius: 8 },
+  errorTxt:   { flex: 1, fontSize: 12, fontFamily: 'Inter_500Medium', color: '#FF6B6B' },
+
   legal:      { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)', textAlign: 'center' },
 });

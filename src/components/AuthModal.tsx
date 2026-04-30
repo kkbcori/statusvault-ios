@@ -17,7 +17,7 @@ interface Props {
   message?: string;
 }
 
-type Mode = 'password' | 'register' | 'set-password';
+type Mode = 'password' | 'register' | 'set-password' | 'forgot';
 
 // ── Cross-platform inputs ─────────────────────────────────────
 const EmailInput = ({ value, onChange, onSubmit }: { value: string; onChange: (v: string) => void; onSubmit?: () => void }) =>
@@ -70,6 +70,7 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
   const signInWithPassword = useStore((s) => s.signInWithPassword);
   const signUp             = useStore((s) => s.signUp);
   const setPassword        = useStore((s) => s.setPassword);
+  const requestPasswordReset = useStore((s) => s.requestPasswordReset);
   const authUser           = useStore((s) => s.authUser);
 
   const [mode,       setMode]       = useState<Mode>('password');
@@ -88,7 +89,14 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
     setLoading(false); setGoogleLoad(false);
     setError(''); setSuccess(''); setShowPwd(false);
   };
-  const handleClose = () => { reset(); onClose(); };
+  const handleClose = () => {
+    reset();
+    // Clear recovery flag so the modal doesn't immediately reopen
+    if (useStore.getState().passwordRecoveryActive) {
+      useStore.getState().setPasswordRecoveryActive(false);
+    }
+    onClose();
+  };
 
   const handleGoogle = async () => {
     setGoogleLoad(true); setError('');
@@ -200,9 +208,29 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
         ? 'Registration timed out. Check your internet connection and try again.'
         : (e?.message ?? 'Registration failed') })) as { error: string | null };
       if (result.error) { setError(result.error); return; }
-      setSuccess('Account created! Check your email to verify, then sign in below.');
+      setSuccess('Account created! Check your email to verify (and your spam folder), then sign in below.');
       setMode('password');
       setPassword2(''); setConfirmPwd('');
+    } finally { setLoading(false); }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(''); setSuccess('');
+    if (!email.trim()) { setError('Please enter your email.'); return; }
+    setLoading(true);
+    try {
+      const result = await Promise.race([
+        requestPasswordReset(email.trim()),
+        new Promise<{ error: string }>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+        ),
+      ]).catch((e: any) => ({ error: e?.message === 'TIMEOUT'
+        ? 'Request timed out. Check your internet connection and try again.'
+        : (e?.message ?? 'Could not send reset link') })) as { error: string | null };
+      if (result.error) { setError(result.error); return; }
+      setSuccess(`Reset link sent! Check your inbox at ${email.trim()} (and your spam folder). The link expires in 1 hour.`);
+      // Stay on the forgot screen so user can see the success message clearly.
+      // They can tap "Back to sign in" when ready.
     } finally { setLoading(false); }
   };
 
@@ -214,20 +242,29 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
     try {
       const { error: err } = await setPassword(password);
       if (err) { setError(err); return; }
-      setSuccess('Password set! You can now sign in with email + password.');
+      const wasRecovery = !!useStore.getState().passwordRecoveryActive;
+      setSuccess(wasRecovery
+        ? 'Password updated! You can now sign in with your new password.'
+        : 'Password set! You can now sign in with email + password.');
       setPassword2(''); setConfirmPwd('');
+      if (wasRecovery) {
+        useStore.getState().setPasswordRecoveryActive(false);
+      }
     } finally { setLoading(false); }
   };
 
   // Set Password mode
   if (mode === 'set-password' || (visible && authUser && message?.includes('set') && message?.includes('password'))) {
+    const isRecovery = !!useStore.getState().passwordRecoveryActive;
     const content = (
       <View style={s.sheet}>
         <LinearGradient colors={['#050B1C', '#0A1530']} style={s.header}>
           <View style={s.headerIcon}><Ionicons name="key-outline" size={22} color={colors.primaryLight} /></View>
           <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Set a Password</Text>
-            <Text style={s.headerSub}>Optional — lets you sign in with email + password</Text>
+            <Text style={s.headerTitle}>{isRecovery ? 'Reset Your Password' : 'Set a Password'}</Text>
+            <Text style={s.headerSub}>
+              {isRecovery ? 'Choose a new password for your account' : 'Optional — lets you sign in with email + password'}
+            </Text>
           </View>
           <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
             <Ionicons name="close" size={18} color="rgba(240,244,255,0.60)" />
@@ -259,8 +296,15 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
       <LinearGradient colors={['#050B1C', '#0A1530']} style={s.header}>
         <View style={s.headerIcon}><Ionicons name="shield-checkmark" size={22} color={colors.primaryLight} /></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.headerTitle}>Sign in to StatusVault</Text>
-          <Text style={s.headerSub}>{message ?? 'Sign in with Google or your email'}</Text>
+          <Text style={s.headerTitle}>
+            {mode === 'forgot' ? 'Reset your password'
+             : mode === 'register' ? 'Create your account'
+             : 'Sign in to StatusVault'}
+          </Text>
+          <Text style={s.headerSub}>
+            {mode === 'forgot' ? 'We\'ll email you a reset link'
+             : (message ?? 'Sign in with Google or your email')}
+          </Text>
         </View>
         <TouchableOpacity style={s.closeBtn} onPress={handleClose}>
           <Ionicons name="close" size={18} color="rgba(240,244,255,0.60)" />
@@ -268,23 +312,27 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
       </LinearGradient>
 
       <View style={s.body}>
-        <TouchableOpacity style={s.googleBtn} onPress={handleGoogle} disabled={googleLoad} activeOpacity={0.85}>
-          {googleLoad ? <ActivityIndicator size="small" color="#6FAFF2" /> : (
-            <>
-              {IS_WEB
-                ? <span dangerouslySetInnerHTML={{ __html: `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>` }} />
-                : <Image
-                    source={require('../../assets/google-logo.png')}
-                    style={{ width: 18, height: 18 }}
-                    resizeMode="contain"
-                  />
-              }
-              <Text style={s.googleTxt}>Continue with Google</Text>
-            </>
-          )}
-        </TouchableOpacity>
+        {mode !== 'forgot' && (
+          <>
+            <TouchableOpacity style={s.googleBtn} onPress={handleGoogle} disabled={googleLoad} activeOpacity={0.85}>
+              {googleLoad ? <ActivityIndicator size="small" color="#6FAFF2" /> : (
+                <>
+                  {IS_WEB
+                    ? <span dangerouslySetInnerHTML={{ __html: `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>` }} />
+                    : <Image
+                        source={require('../../assets/google-logo.png')}
+                        style={{ width: 18, height: 18 }}
+                        resizeMode="contain"
+                      />
+                  }
+                  <Text style={s.googleTxt}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-        <View style={s.divRow}><View style={s.divLine} /><Text style={s.divTxt}>or</Text><View style={s.divLine} /></View>
+            <View style={s.divRow}><View style={s.divLine} /><Text style={s.divTxt}>or</Text><View style={s.divLine} /></View>
+          </>
+        )}
 
         {error ? <View style={s.errorBox}><Ionicons name="alert-circle" size={15} color={colors.danger} /><Text style={s.errorTxt}>{error}</Text></View> : null}
         {success ? <View style={s.successBox}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={s.successTxt}>{success}</Text></View> : null}
@@ -309,6 +357,9 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
                   </View>
                 ) : <Text style={s.submitTxt}>Sign In</Text>}
               </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setMode('forgot'); setError(''); setSuccess(''); setPassword2(''); }} style={{ alignItems: 'center', marginTop: 10 }}>
+              <Text style={s.linkTxt}>Forgot password?</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { setMode('register'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 12 }}>
               <Text style={s.linkTxt}>New here? Create an account →</Text>
@@ -337,6 +388,24 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
             <Text style={s.hint}>By creating an account, you agree to our Terms and Privacy Policy.</Text>
             <TouchableOpacity onPress={() => { setMode('password'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 8 }}>
               <Text style={s.linkTxt}>Already have an account? Sign in →</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {mode === 'forgot' && (
+          <>
+            <Text style={[s.hint, { marginBottom: 12 }]}>
+              Enter your email and we'll send you a link to reset your password.
+            </Text>
+            <Text style={s.label}>Email address</Text>
+            <EmailInput value={email} onChange={setEmail} />
+            <TouchableOpacity style={s.submitBtn} onPress={handleForgotPassword} disabled={loading} activeOpacity={0.85}>
+              <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
+                {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Send Reset Link</Text>}
+              </LinearGradient>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => { setMode('password'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 12 }}>
+              <Text style={s.linkTxt}>← Back to sign in</Text>
             </TouchableOpacity>
           </>
         )}
