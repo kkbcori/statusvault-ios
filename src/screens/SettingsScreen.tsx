@@ -274,76 +274,117 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleExportPDF = () => {
-    if (IS_WEB && typeof window !== 'undefined') {
-      const { documents: docs, familyMembers } = useStore.getState();
-      const rows = docs.map(d => {
+  const buildDocsHtml = () => {
+    const { documents: docs, familyMembers } = useStore.getState();
+    const rows = docs.map(d => {
+      const days = calculateDaysRemaining(d.expiryDate);
+      const status = days < 0 ? 'EXPIRED' : days < 30 ? 'CRITICAL' : days < 60 ? 'HIGH' : days < 180 ? 'MEDIUM' : 'LOW';
+      const color  = days < 0 ? '#FF6B6B' : days < 30 ? '#FF6B6B' : days < 60 ? '#F5C053' : days < 180 ? '#6FAFF2' : '#4CD98A';
+      return `<tr><td>${d.icon} ${d.label}</td><td>${d.expiryDate}</td><td>${d.documentNumber || '—'}</td><td style="color:${color};font-weight:700">${status} (${days}d)</td><td>${d.notes || ''}</td></tr>`;
+    }).join('');
+    const famRows = familyMembers.flatMap(m =>
+      docs.filter(d => m.documentIds?.includes(d.id)).map(d => {
         const days = calculateDaysRemaining(d.expiryDate);
-        const status = days < 0 ? 'EXPIRED' : days < 30 ? 'CRITICAL' : days < 60 ? 'HIGH' : days < 180 ? 'MEDIUM' : 'LOW';
-        const color  = days < 0 ? '#FF6B6B' : days < 30 ? '#FF6B6B' : days < 60 ? '#F5C053' : days < 180 ? '#6FAFF2' : '#4CD98A';
-        return `<tr><td>${d.icon} ${d.label}</td><td>${d.expiryDate}</td><td>${d.documentNumber || '—'}</td><td style="color:${color};font-weight:700">${status} (${days}d)</td><td>${d.notes || ''}</td></tr>`;
-      }).join('');
-      const famRows = familyMembers.flatMap(m =>
-        docs.filter(d => m.documentIds?.includes(d.id)).map(d => {
-          const days = calculateDaysRemaining(d.expiryDate);
-          const status = days < 0 ? 'EXPIRED' : days < 30 ? 'CRITICAL' : days < 60 ? 'HIGH' : 'OK';
-          const color  = days < 0 ? '#FF6B6B' : days < 30 ? '#FF6B6B' : days < 60 ? '#F5C053' : '#4CD98A';
-          return `<tr><td>${m.name}</td><td>${d.icon} ${d.label}</td><td>${d.expiryDate}</td><td style="color:${color};font-weight:700">${status} (${days}d)</td></tr>`;
-        })
-      ).join('');
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StatusVault Documents</title>
-        <style>@page{size:A4;margin:0}
-        *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-        body{font-family:Arial,sans-serif;padding:20mm 18mm;color:#0F172A}h1{color:#4F46E5;font-size:22px}h2{color:#0F172A;font-size:16px;margin-top:24px}
-        table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#EEF2FF;color:#4F46E5;padding:8px 10px;text-align:left;font-size:12px}
-        td{padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#0F172A}.footer{margin-top:32px;font-size:10px;color:#0F172A}</style>
-        </head><body>
-        <h1>📋 StatusVault — Document Export</h1>
-        <p style="color:#0F172A;font-size:13px">Generated: ${new Date().toLocaleString()}</p>
-        <h2>Your Documents (${docs.length})</h2>
-        <table><thead><tr><th>Document</th><th>Expiry</th><th>Doc #</th><th>Status</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>
-        ${famRows ? `<h2>Family Member Documents</h2><table><thead><tr><th>Member</th><th>Document</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${famRows}</tbody></table>` : ''}
-        <div class="footer">StatusVault · All data stored locally · AES-256 encrypted</div>
-        </body></html>`;
+        const status = days < 0 ? 'EXPIRED' : days < 30 ? 'CRITICAL' : days < 60 ? 'HIGH' : 'OK';
+        const color  = days < 0 ? '#FF6B6B' : days < 30 ? '#FF6B6B' : days < 60 ? '#F5C053' : '#4CD98A';
+        return `<tr><td>${m.name}</td><td>${d.icon} ${d.label}</td><td>${d.expiryDate}</td><td style="color:${color};font-weight:700">${status} (${days}d)</td></tr>`;
+      })
+    ).join('');
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StatusVault Documents</title>
+      <style>@page{size:A4;margin:0}
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+      body{font-family:Arial,sans-serif;padding:20mm 18mm;color:#0F172A}h1{color:#4F46E5;font-size:22px}h2{color:#0F172A;font-size:16px;margin-top:24px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}th{background:#EEF2FF;color:#4F46E5;padding:8px 10px;text-align:left;font-size:12px}
+      td{padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#0F172A}.footer{margin-top:32px;font-size:10px;color:#0F172A}</style>
+      </head><body>
+      <h1>📋 StatusVault — Document Export</h1>
+      <p style="color:#0F172A;font-size:13px">Generated: ${new Date().toLocaleString()}</p>
+      <h2>Your Documents (${docs.length})</h2>
+      <table><thead><tr><th>Document</th><th>Expiry</th><th>Doc #</th><th>Status</th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>
+      ${famRows ? `<h2>Family Member Documents</h2><table><thead><tr><th>Member</th><th>Document</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${famRows}</tbody></table>` : ''}
+      <div class="footer">StatusVault · All data stored locally · AES-256 encrypted</div>
+      </body></html>`;
+  };
+
+  const handleExportPDF = async () => {
+    const html = buildDocsHtml();
+    if (IS_WEB && typeof window !== 'undefined') {
       const w = window.open('', '_blank');
       if (w) { w.document.write(html); w.document.close(); w.print(); }
-    } else {
-      dialog.alert('PDF Export', 'PDF export is available on the web version.');
+      return;
+    }
+    // Native: generate PDF via expo-print, share via expo-sharing
+    try {
+      const Print   = await import('expo-print');
+      const Sharing = await import('expo-sharing');
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'StatusVault — Documents',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        dialog.alert('PDF Created', `Saved to: ${uri}`);
+      }
+    } catch (e: any) {
+      dialog.alert('Export Failed', e?.message ?? 'Could not create PDF. Please try again.');
     }
   };
 
-  const handleExportChecklistPDF = () => {
+  const buildChecklistHtml = () => {
+    const { checklists } = useStore.getState();
+    const sections = checklists.map(cl => {
+      const done  = cl.items.filter((i: any) => i.done).length;
+      const pct   = cl.items.length > 0 ? Math.round((done / cl.items.length) * 100) : 0;
+      const items = cl.items.map((i: any) =>
+        `<li style="margin:4px 0;color:${i.done ? '#4CD98A' : '#0F172A'}">${i.done ? '✅' : '⬜'} ${i.text}</li>`
+      ).join('');
+      return `<div style="margin-bottom:24px;break-inside:avoid">
+        <h2 style="margin-bottom:4px">${cl.icon} ${cl.label}</h2>
+        <div style="background:#EEF2FF;border-radius:6px;padding:6px 12px;display:inline-block;margin-bottom:8px;font-size:12px;color:#4F46E5">
+          ${done}/${cl.items.length} complete · ${pct}%
+        </div>
+        <ul style="margin:0;padding-left:20px;list-style:none">${items}</ul>
+      </div>`;
+    }).join('');
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StatusVault Checklists</title>
+      <style>@page{size:A4;margin:0}
+      *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+      body{font-family:Arial,sans-serif;padding:20mm 18mm;color:#0F172A}h1{color:#4F46E5;font-size:22px}h2{color:#0F172A;font-size:15px}
+      .footer{margin-top:32px;font-size:10px;color:#0F172A}</style>
+      </head><body>
+      <h1>✅ StatusVault — Checklist Export</h1>
+      <p style="color:#0F172A;font-size:13px">Generated: ${new Date().toLocaleString()} · ${checklists.length} checklist(s)</p>
+      ${sections}
+      <div class="footer">StatusVault · All data stored locally · AES-256 encrypted</div>
+      </body></html>`;
+  };
+
+  const handleExportChecklistPDF = async () => {
+    const html = buildChecklistHtml();
     if (IS_WEB && typeof window !== 'undefined') {
-      const { checklists } = useStore.getState();
-      const sections = checklists.map(cl => {
-        const done  = cl.items.filter((i: any) => i.done).length;
-        const pct   = cl.items.length > 0 ? Math.round((done / cl.items.length) * 100) : 0;
-        const items = cl.items.map((i: any) =>
-          `<li style="margin:4px 0;color:${i.done ? '#4CD98A' : 'rgba(240,244,255,0.80)'}">${i.done ? '✅' : '⬜'} ${i.text}</li>`
-        ).join('');
-        return `<div style="margin-bottom:24px;break-inside:avoid">
-          <h2 style="margin-bottom:4px">${cl.icon} ${cl.label}</h2>
-          <div style="background:#EEF2FF;border-radius:6px;padding:6px 12px;display:inline-block;margin-bottom:8px;font-size:12px;color:#4F46E5">
-            ${done}/${cl.items.length} complete · ${pct}%
-          </div>
-          <ul style="margin:0;padding-left:20px;list-style:none">${items}</ul>
-        </div>`;
-      }).join('');
-      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>StatusVault Checklists</title>
-        <style>@page{size:A4;margin:0}
-        *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-        body{font-family:Arial,sans-serif;padding:20mm 18mm;color:#0F172A}h1{color:#4F46E5;font-size:22px}h2{color:#0F172A;font-size:15px}
-        .footer{margin-top:32px;font-size:10px;color:#0F172A}</style>
-        </head><body>
-        <h1>✅ StatusVault — Checklist Export</h1>
-        <p style="color:#0F172A;font-size:13px">Generated: ${new Date().toLocaleString()} · ${checklists.length} checklist(s)</p>
-        ${sections}
-        <div class="footer">StatusVault · All data stored locally · AES-256 encrypted</div>
-        </body></html>`;
       const w = window.open('', '_blank');
       if (w) { w.document.write(html); w.document.close(); w.print(); }
-    } else {
-      dialog.alert('Export', 'Checklist export is available on the web version.');
+      return;
+    }
+    try {
+      const Print   = await import('expo-print');
+      const Sharing = await import('expo-sharing');
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'StatusVault — Checklists',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        dialog.alert('PDF Created', `Saved to: ${uri}`);
+      }
+    } catch (e: any) {
+      dialog.alert('Export Failed', e?.message ?? 'Could not create PDF. Please try again.');
     }
   };
 
