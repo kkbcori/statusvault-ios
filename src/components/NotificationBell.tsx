@@ -202,7 +202,7 @@ const s = StyleSheet.create({
   emptyTxt:  { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: 'rgba(240,244,255,0.80)' },
   emptySub:  { fontSize: 12, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.45)' },
   item:      { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'transparent', position: 'relative' as any },
-  itemRead:  { backgroundColor: '#FAFAFA' },
+  itemRead:  { backgroundColor: 'rgba(255,255,255,0.02)', opacity: 0.65 },
   dot:       { position: 'absolute' as any, left: 4, top: 16, width: 6, height: 6, borderRadius: 3 },
   icon:      { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, flexShrink: 0 },
   chip:      { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1 },

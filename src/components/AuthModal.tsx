@@ -27,6 +27,7 @@ const EmailInput = ({ value, onChange, onSubmit }: { value: string; onChange: (v
       onChange={(e: any) => onChange(e.target.value)}
       onKeyDown={(e: any) => { if (e.key === 'Enter') onSubmit?.(); }}
       placeholder="you@email.com" autoFocus maxLength={254}
+      autoComplete="username"
       style={inputStyle}
     />
   ) : (
@@ -35,12 +36,14 @@ const EmailInput = ({ value, onChange, onSubmit }: { value: string; onChange: (v
       placeholder="you@email.com" placeholderTextColor="rgba(240,244,255,0.40)"
       keyboardType="email-address" autoCapitalize="none" autoCorrect={false}
       returnKeyType="done" onSubmitEditing={onSubmit}
+      textContentType="username"
+      autoComplete="username"
     />
   );
 
-const PasswordInput = ({ value, onChange, onSubmit, showPwd, placeholder }: {
+const PasswordInput = ({ value, onChange, onSubmit, showPwd, placeholder, isNew }: {
   value: string; onChange: (v: string) => void; onSubmit?: () => void;
-  showPwd: boolean; placeholder?: string;
+  showPwd: boolean; placeholder?: string; isNew?: boolean;
 }) =>
   IS_WEB ? (
     <input
@@ -48,6 +51,7 @@ const PasswordInput = ({ value, onChange, onSubmit, showPwd, placeholder }: {
       onChange={(e: any) => onChange(e.target.value)}
       onKeyDown={(e: any) => { if (e.key === 'Enter') onSubmit?.(); }}
       placeholder={placeholder ?? 'Your password'}
+      autoComplete={isNew ? 'new-password' : 'current-password'}
       style={{ ...inputStyle, paddingRight: '40px' } as any}
     />
   ) : (
@@ -56,6 +60,9 @@ const PasswordInput = ({ value, onChange, onSubmit, showPwd, placeholder }: {
       placeholder={placeholder ?? 'Your password'} placeholderTextColor="rgba(240,244,255,0.40)"
       secureTextEntry={!showPwd} autoCapitalize="none" autoCorrect={false}
       returnKeyType="done" onSubmitEditing={onSubmit}
+      textContentType={isNew ? 'newPassword' : 'password'}
+      autoComplete={isNew ? 'password-new' : 'password'}
+      passwordRules={isNew ? 'minlength: 8;' : undefined}
     />
   );
 
@@ -134,7 +141,7 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
   };
 
   const handlePasswordLogin = async () => {
-    setError('');
+    setError(''); setSuccess('');
     if (!email.trim() || !email.includes('@')) { setError('Enter a valid email address.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
@@ -191,9 +198,9 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
           {error ? <View style={s.errorBox}><Ionicons name="alert-circle" size={15} color={colors.danger} /><Text style={s.errorTxt}>{error}</Text></View> : null}
           {success ? <View style={s.successBox}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={s.successTxt}>{success}</Text></View> : null}
           <Text style={s.label}>New Password</Text>
-          <PasswordInput value={password} onChange={setPassword2} showPwd={showPwd} placeholder="8+ characters" />
+          <PasswordInput value={password} onChange={setPassword2} showPwd={showPwd} placeholder="8+ characters" isNew />
           <Text style={s.label}>Confirm Password</Text>
-          <PasswordInput value={confirmPwd} onChange={setConfirmPwd} showPwd={showPwd} placeholder="Re-enter password" onSubmit={handleSetPassword} />
+          <PasswordInput value={confirmPwd} onChange={setConfirmPwd} showPwd={showPwd} placeholder="Re-enter password" onSubmit={handleSetPassword} isNew />
           <TouchableOpacity style={s.submitBtn} onPress={handleSetPassword} disabled={loading} activeOpacity={0.85}>
             <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
               {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Set Password</Text>}
@@ -271,13 +278,13 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
             <EmailInput value={email} onChange={setEmail} />
             <Text style={s.label}>Password</Text>
             <View style={{ position: 'relative' as any }}>
-              <PasswordInput value={password} onChange={setPassword2} onSubmit={handleRegister} showPwd={showPwd} />
+              <PasswordInput value={password} onChange={setPassword2} onSubmit={handleRegister} showPwd={showPwd} isNew />
               <TouchableOpacity onPress={() => setShowPwd((v) => !v)} style={s.eyeBtn}>
                 <Ionicons name={showPwd ? 'eye-off-outline' : 'eye-outline'} size={16} color="rgba(240,244,255,0.55)" />
               </TouchableOpacity>
             </View>
             <Text style={s.label}>Confirm password</Text>
-            <PasswordInput value={confirmPwd} onChange={setConfirmPwd} onSubmit={handleRegister} showPwd={showPwd} />
+            <PasswordInput value={confirmPwd} onChange={setConfirmPwd} onSubmit={handleRegister} showPwd={showPwd} isNew />
             <TouchableOpacity style={s.submitBtn} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
               <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
                 {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Create Account</Text>}

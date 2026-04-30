@@ -710,7 +710,18 @@ export const useStore = create<AppStore>()(
       },
 
       signUp: async (email, password) => {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        // Verification email links route to web (statusvault.org), not the app.
+        // After verifying on web, users return to the app and sign in with their password.
+        // This avoids the iOS deep-link/Gmail-browser nightmare we hit with magic links.
+        const emailRedirectTo = Platform.OS === 'web'
+          ? (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+              ? window.location.origin
+              : 'https://www.statusvault.org')
+          : 'https://www.statusvault.org';
+        const { data, error } = await supabase.auth.signUp({
+          email, password,
+          options: { emailRedirectTo },
+        });
         if (!error) set({ isGuestMode: false });
         if (error) return { error: error.message };
         if (data.user && !data.session) {
