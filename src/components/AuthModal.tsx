@@ -146,8 +146,17 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
     try {
-      const { error: err } = await signInWithPassword(email.trim(), password);
-      if (err) { setError(err); return; }
+      // Hard 8-second timeout — if sign-in doesn't complete by then, surface an
+      // error rather than letting the UI freeze indefinitely.
+      const result = await Promise.race([
+        signInWithPassword(email.trim(), password),
+        new Promise<{ error: string }>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 8000)
+        ),
+      ]).catch((e: any) => ({ error: e?.message === 'TIMEOUT'
+        ? 'Sign-in timed out. Check your internet connection and try again.'
+        : (e?.message ?? 'Sign-in failed') })) as { error: string | null };
+      if (result.error) { setError(result.error); return; }
       reset(); onSuccess?.(); onClose();
     } finally { setLoading(false); }
   };
@@ -159,8 +168,15 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
     if (password !== confirmPwd) { setError('Passwords do not match.'); return; }
     setLoading(true);
     try {
-      const { error: err } = await signUp(email.trim(), password);
-      if (err) { setError(err); return; }
+      const result = await Promise.race([
+        signUp(email.trim(), password),
+        new Promise<{ error: string }>((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT')), 10000)
+        ),
+      ]).catch((e: any) => ({ error: e?.message === 'TIMEOUT'
+        ? 'Registration timed out. Check your internet connection and try again.'
+        : (e?.message ?? 'Registration failed') })) as { error: string | null };
+      if (result.error) { setError(result.error); return; }
       setSuccess('Account created! Check your email to verify, then sign in below.');
       setMode('password');
       setPassword2(''); setConfirmPwd('');

@@ -704,8 +704,10 @@ export const useStore = create<AppStore>()(
             createdAt: user.created_at,
           },
         });
-        // Pull cloud data after sign in
-        await get().syncFromCloud();
+        // Pull cloud data after sign-in — fire and forget so the sign-in promise
+        // resolves immediately. If the sync hangs, the UI doesn't freeze. The
+        // onAuthStateChange listener will also trigger a sync as a safety net.
+        get().syncFromCloud().catch(() => {});
         return { error: null };
       },
 

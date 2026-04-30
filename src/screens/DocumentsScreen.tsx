@@ -54,6 +54,9 @@ export const DocumentsScreen: React.FC = () => {
   // Search bar inside the add-modal — toggled by the search icon in the modal header.
   const [searchOpen,      setSearchOpen]      = useState(false);
   const [searchQuery,     setSearchQuery]     = useState('');
+  // Country expansion state — by default all collapsed so user sees just country names.
+  // Auto-expand when search is active so matches are visible.
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
 
   const templatesByCategory = getTemplatesByCategory();
   const remaining = getRemainingFreeSlots();
@@ -69,6 +72,7 @@ export const DocumentsScreen: React.FC = () => {
     setExpiryDate(new Date()); setNotes(''); setShowDatePicker(false);
     setEditingDoc(null);
     setSearchOpen(false); setSearchQuery('');
+    setExpandedCountries(new Set());
   };
 
   const isGuestMode      = useStore((s) => s.isGuestMode);
@@ -297,14 +301,34 @@ export const DocumentsScreen: React.FC = () => {
                     });
                     return (
                       <View key={code}>
-                        <View style={styles.countryBanner}>
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            // Toggle expansion. Search short-circuits this — when search is
+                            // active we always expand all matching countries.
+                            if (q !== '') return;
+                            setExpandedCountries(prev => {
+                              const next = new Set(prev);
+                              if (next.has(code)) next.delete(code); else next.add(code);
+                              return next;
+                            });
+                          }}
+                          style={styles.countryBanner}
+                        >
                           <Text style={styles.countryBannerFlag}>{flag}</Text>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.countryBannerTitle}>{name}</Text>
-                            <Text style={styles.countryBannerSub}>{sub}</Text>
+                            <Text style={styles.countryBannerSub}>
+                              {q !== '' ? `${matched.length} matches` : `${matched.length} document${matched.length === 1 ? '' : 's'}`}
+                            </Text>
                           </View>
-                        </View>
-                        {Object.entries(byCat).map(([category, templates]) => (
+                          <Ionicons
+                            name={(q !== '' || expandedCountries.has(code)) ? 'chevron-down' : 'chevron-forward'}
+                            size={18}
+                            color="rgba(240,244,255,0.50)"
+                          />
+                        </TouchableOpacity>
+                        {(q !== '' || expandedCountries.has(code)) && Object.entries(byCat).map(([category, templates]) => (
                           <View key={category} style={styles.templateSection}>
                             <Text style={styles.templateSectionTitle}>{CATEGORY_LABELS[category as DocumentCategory]}</Text>
                             {templates.map((tmpl) => {
