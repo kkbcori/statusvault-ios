@@ -78,6 +78,7 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
   const [confirmPwd, setConfirmPwd] = useState('');
   const [showPwd,    setShowPwd]    = useState(false);
   const [loading,    setLoading]    = useState(false);
+  const [loadingStep,setLoadingStep]= useState('');
   const [googleLoad, setGoogleLoad] = useState(false);
   const [error,      setError]      = useState('');
   const [success,    setSuccess]    = useState('');
@@ -145,6 +146,7 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
     if (!email.trim() || !email.includes('@')) { setError('Enter a valid email address.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setLoading(true);
+    setLoadingStep('Authenticating with server…');
     try {
       // Hard 8-second timeout — if sign-in doesn't complete by then, surface an
       // error rather than letting the UI freeze indefinitely.
@@ -157,8 +159,29 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
         ? 'Sign-in timed out. Check your internet connection and try again.'
         : (e?.message ?? 'Sign-in failed') })) as { error: string | null };
       if (result.error) { setError(result.error); return; }
+      setLoadingStep('Verifying session…');
+      // Quick verification step — if Supabase has session but store doesn't,
+      // we know about it before the modal closes
+      try {
+        await new Promise(r => setTimeout(r, 200));
+        const { supabase } = await import('../utils/supabase');
+        const { data } = await supabase.auth.getSession();
+        if (data?.session?.user) {
+          // Make sure store is in sync
+          useStore.setState({
+            authUser: {
+              id: data.session.user.id,
+              email: data.session.user.email!,
+              createdAt: data.session.user.created_at,
+            },
+            isGuestMode: false,
+            hasOnboarded: true,
+          });
+        }
+      } catch {}
+      setLoadingStep('Done!');
       reset(); onSuccess?.(); onClose();
-    } finally { setLoading(false); }
+    } finally { setLoading(false); setLoadingStep(''); }
   };
 
   const handleRegister = async () => {
@@ -279,7 +302,12 @@ export const AuthModal: React.FC<Props> = ({ visible, onClose, onSuccess, messag
             </View>
             <TouchableOpacity style={s.submitBtn} onPress={handlePasswordLogin} disabled={loading} activeOpacity={0.85}>
               <LinearGradient colors={[colors.primary, colors.primaryMid]} style={s.submitGrad}>
-                {loading ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.submitTxt}>Sign In</Text>}
+                {loading ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 } as any}>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text style={[s.submitTxt, { fontSize: 12, opacity: 0.9 }]}>{loadingStep || 'Signing in…'}</Text>
+                  </View>
+                ) : <Text style={s.submitTxt}>Sign In</Text>}
               </LinearGradient>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => { setMode('register'); setError(''); setSuccess(''); }} style={{ alignItems: 'center', marginTop: 12 }}>

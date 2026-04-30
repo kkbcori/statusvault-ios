@@ -22,6 +22,7 @@ import { useDialog } from '../components/ConfirmDialog';
 import { AnimatedEmptyIcon } from '../components/AnimatedEmptyIcon';
 import { NotificationBell } from '../components/NotificationBell';
 import { PremiumUpsellBanner } from '../components/PremiumUpsellBanner';
+import { AuthDesyncBanner } from '../components/AuthDesyncBanner';
 import { DebugScreen } from './DebugScreen';
 import { useEntrance, usePressScale } from '../hooks/useAnimations';
 
@@ -381,6 +382,8 @@ export const DashboardScreen: React.FC = () => {
                       ? useStore.getState().openProfileModal()
                       : useStore.getState().openAuthModal('Sign in to access your profile and sync documents')
                   }
+                  onLongPress={() => setShowDebug(true)}
+                  delayLongPress={1000}
                   activeOpacity={0.7}
                   accessibilityLabel={authUser ? 'Open profile' : 'Sign in'}
                 >
@@ -413,6 +416,11 @@ export const DashboardScreen: React.FC = () => {
 
       {/* ── Premium upsell banner (hidden for premium users) ── */}
       <PremiumUpsellBanner />
+
+      {/* ── Auth desync detector — diagnostic banner that shows if Supabase
+           thinks you're signed in but the app's auth state disagrees, OR
+           vice versa. This catches the exact symptom being reported. ── */}
+      <AuthDesyncBanner onOpenDebug={() => setShowDebug(true)} />
 
       {/* ── Email verified banner ── */}
       {authUser && emailVerified && (
