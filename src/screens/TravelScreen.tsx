@@ -730,12 +730,17 @@ export const TravelScreen: React.FC = () => {
                 <Ionicons name="airplane-outline" size={18} color="#6FAFF2" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.addrInfoTitle, { color: '#4C3D99' }]}>I-94 Travel History</Text>
-                <Text style={[styles.addrInfoSub, { color: '#6FAFF2' }]}>Required for N-400 — log all international trips for the past 5 years</Text>
+                <Text style={[styles.addrInfoTitle, { color: '#C4B5FD' }]}>I-94 Travel History</Text>
+                <Text style={[styles.addrInfoSub, { color: 'rgba(196,181,253,0.75)' }]}>Required for N-400 — log all international trips for the past 5 years</Text>
               </View>
             </View>
 
-            <View style={{ padding: spacing.screen, paddingTop: 8, gap: 7 } as any}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: spacing.screen, paddingTop: 8, gap: 7, paddingBottom: 60 } as any}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+            >
 
               {/* Dates — side by side */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -821,7 +826,7 @@ export const TravelScreen: React.FC = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-            </View>{/* end form */}
+            </ScrollView>{/* end form */}
           </View>{/* end modalSheet */}
         </View>{/* end modalOverlay */}
         </KeyboardAvoidingView>
@@ -852,7 +857,12 @@ export const TravelScreen: React.FC = () => {
               </View>
             </View>
 
-            <View style={{ padding: spacing.screen, paddingTop: 8, gap: 7 } as any}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: spacing.screen, paddingTop: 8, gap: 7, paddingBottom: 60 } as any}
+              showsVerticalScrollIndicator={true}
+              keyboardShouldPersistTaps="handled"
+            >
 
               {/* Street + Apt on same row */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -946,7 +956,7 @@ export const TravelScreen: React.FC = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-            </View>
+            </ScrollView>
           </View>
         </View>
         </KeyboardAvoidingView>

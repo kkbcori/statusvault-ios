@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Platform, View, Text, StyleSheet, TouchableOpacity, Modal,
+  Platform, View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView,
   ActivityIndicator, TextInput, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -363,7 +363,14 @@ const ModalWrapper: React.FC<{ visible: boolean; onClose: () => void; children: 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.overlay}>
           <TouchableOpacity style={s.backdrop} activeOpacity={1} onPress={onClose} />
-          <View style={s.centeredBox}>{children}</View>
+          <ScrollView
+            style={{ flexGrow: 0, maxHeight: '92%', width: '100%' }}
+            contentContainerStyle={{ alignItems: 'center', paddingVertical: 8 }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={s.centeredBox}>{children}</View>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>

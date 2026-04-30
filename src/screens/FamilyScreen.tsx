@@ -326,7 +326,9 @@ export const FamilyScreen: React.FC = () => {
               <Text style={styles.freePlanBannerText}>
                 Free plan: <Text style={{ fontFamily: 'Inter_700Bold' }}>1 family member</Text> · <Text style={{ fontFamily: 'Inter_700Bold' }}>{FREE_DOC_LIMIT} doc{FREE_DOC_LIMIT !== 1 ? 's' : ''}</Text> per member
               </Text>
-              <Text style={styles.freePlanUpgrade}>Upgrade →</Text>
+              <TouchableOpacity onPress={() => useStore.getState().openPaywall()}>
+                <Text style={styles.freePlanUpgrade}>Upgrade →</Text>
+              </TouchableOpacity>
             </View>
           )}
           <Animated.View style={[listAnim, styles.memberGrid as any, IS_WEB && styles.memberGridWeb as any]}>
