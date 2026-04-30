@@ -34,6 +34,7 @@ export const CounterScreen: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [searchOpen,  setSearchOpen]  = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
   const activeIds = counters.map((c) => c.templateId);
 
   React.useEffect(() => { autoIncrementCounters(); }, []);
@@ -49,6 +50,7 @@ export const CounterScreen: React.FC = () => {
   };
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={[styles.content, IS_WEB && styles.contentWeb]}
@@ -153,12 +155,6 @@ export const CounterScreen: React.FC = () => {
         </View>
       )}
 
-      {!IS_WEB && (
-        <TouchableOpacity style={styles.fab} onPress={handleAddRequest}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      )}
-
       <Modal visible={showAdd} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.modal}>
@@ -172,7 +168,7 @@ export const CounterScreen: React.FC = () => {
                 >
                   <Ionicons name={searchOpen ? 'close-outline' : 'search-outline'} size={18} color="#6FAFF2" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => { setShowAdd(false); setSearchOpen(false); setSearchQuery(''); }}>
+                <TouchableOpacity onPress={() => { setShowAdd(false); setSearchOpen(false); setSearchQuery(''); setExpandedCountries(new Set()); }}>
                   <Ionicons name="close" size={22} color="rgba(240,244,255,0.60)" />
                 </TouchableOpacity>
               </View>
@@ -216,14 +212,32 @@ export const CounterScreen: React.FC = () => {
                   totalVisible += matched.length;
                   return (
                     <View key={code}>
-                      <View style={styles.countryBanner}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          if (q !== '') return;
+                          setExpandedCountries(prev => {
+                            const next = new Set(prev);
+                            if (next.has(code)) next.delete(code); else next.add(code);
+                            return next;
+                          });
+                        }}
+                        style={styles.countryBanner}
+                      >
                         <Text style={styles.countryBannerFlag}>{flag}</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.countryBannerTitle}>{name}</Text>
-                          <Text style={styles.countryBannerSub}>{sub}</Text>
+                          <Text style={styles.countryBannerSub}>
+                            {q !== '' ? `${matched.length} matches` : `${matched.length} timer${matched.length === 1 ? '' : 's'}`}
+                          </Text>
                         </View>
-                      </View>
-                      {matched.map((t) => {
+                        <Ionicons
+                          name={(q !== '' || expandedCountries.has(code)) ? 'chevron-down' : 'chevron-forward'}
+                          size={18}
+                          color="rgba(240,244,255,0.50)"
+                        />
+                      </TouchableOpacity>
+                      {(q !== '' || expandedCountries.has(code)) && matched.map((t) => {
                         const added = activeIds.includes(t.id);
                         return (
                           <TouchableOpacity
@@ -231,7 +245,7 @@ export const CounterScreen: React.FC = () => {
                             style={[styles.templateRow, added && styles.templateRowAdded]}
                             onPress={() => {
                               if (added) return;
-                              addCounter(t.id); setShowAdd(false); setSearchOpen(false); setSearchQuery('');
+                              addCounter(t.id); setShowAdd(false); setSearchOpen(false); setSearchQuery(''); setExpandedCountries(new Set());
                             }}
                             activeOpacity={added ? 1 : 0.75}
                           >
@@ -268,6 +282,12 @@ export const CounterScreen: React.FC = () => {
         </View>
       </Modal>
     </ScrollView>
+    {!IS_WEB && (
+      <TouchableOpacity style={styles.fab} onPress={handleAddRequest}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+    )}
+    </View>
   );
 };
 
@@ -335,10 +355,12 @@ const styles = StyleSheet.create({
 
   fab: {
     position: 'absolute', bottom: 100, right: 20,
-    width: 54, height: 54, borderRadius: 27,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
-    ...(Platform.OS === 'web' ? ({ boxShadow: '0 8px 24px rgba(59,139,232,0.45)' } as any) : {}),
+    ...(Platform.OS === 'web'
+      ? ({ boxShadow: '0 8px 24px rgba(59,139,232,0.45)' } as any)
+      : { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 6 }),
   } as any,
 
   overlay: { flex: 1, backgroundColor: 'rgba(3,8,18,0.75)', alignItems: 'center', justifyContent: 'center', padding: 20 },

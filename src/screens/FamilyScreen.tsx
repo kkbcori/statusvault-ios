@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, spacing, radius, typography, shadows } from '../theme';
 import { IS_WEB } from '../utils/responsive';
 import { useNavigation } from '@react-navigation/native';
@@ -78,11 +79,29 @@ export const FamilyScreen: React.FC = () => {
   // Add doc for member
   const [docTemplateId,    setDocTemplateId]    = useState('');
   const [docExpiry,        setDocExpiry]        = useState('');
+  const [docExpiryDate,    setDocExpiryDate]    = useState<Date>(new Date());
+  const [showDocDatePicker,setShowDocDatePicker]= useState(false);
   const [docNotes,         setDocNotes]         = useState('');
   const [docSearch,        setDocSearch]        = useState('');
   const [docTemplateError, setDocTemplateError] = useState(false);
   const [docExpiryError,   setDocExpiryError]   = useState(false);
   const [docLimitError,    setDocLimitError]    = useState(false);
+
+  // Convert Date → ISO yyyy-mm-dd for backwards-compat with existing handleAddDoc logic
+  const formatExpiry = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const handleDocDateChange = (event: any, selected?: Date) => {
+    if (Platform.OS === 'android') setShowDocDatePicker(false);
+    if (selected) {
+      setDocExpiryDate(selected);
+      setDocExpiry(formatExpiry(selected));
+      setDocExpiryError(false);
+    }
+  };
 
   const handleEditMember = () => {
     if (!editName.trim()) { setEditNameError(true); return; }
@@ -615,11 +634,37 @@ export const FamilyScreen: React.FC = () => {
                   style={{ width: '100%', padding: '12px 14px', fontSize: '15px', fontFamily: 'Inter_400Regular', color: '#F0F4FF', border: `1.5px solid ${docExpiryError ? '#FF6B6B' : 'rgba(255,255,255,0.10)'}`, borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.05)', outline: 'none', cursor: 'pointer', marginBottom: '16px', boxSizing: 'border-box' } as any}
                 />
               ) : (
-                <TextInput
-                  style={[styles.fieldInput, { marginBottom: spacing.md }]}
-                  value={docExpiry} onChangeText={setDocExpiry}
-                  placeholder="YYYY-MM-DD" placeholderTextColor={colors.text3}
-                />
+                <>
+                  <TouchableOpacity
+                    style={[styles.fieldInput, { marginBottom: showDocDatePicker ? spacing.sm : spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                    onPress={() => setShowDocDatePicker(true)}
+                    activeOpacity={0.75}
+                  >
+                    <Text style={{ fontSize: 15, fontFamily: 'Inter_400Regular', color: docExpiry ? '#F0F4FF' : colors.text3 }}>
+                      {docExpiry
+                        ? docExpiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                        : 'Select expiry date'}
+                    </Text>
+                    <Ionicons name="calendar-outline" size={20} color={'#6FAFF2'} />
+                  </TouchableOpacity>
+                  {showDocDatePicker && (
+                    <DateTimePicker
+                      value={docExpiryDate}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={handleDocDateChange}
+                      minimumDate={new Date()}
+                    />
+                  )}
+                  {Platform.OS === 'ios' && showDocDatePicker && (
+                    <TouchableOpacity
+                      style={{ alignSelf: 'flex-end', paddingHorizontal: 16, paddingVertical: 8, marginBottom: spacing.md, backgroundColor: 'rgba(111,175,242,0.15)', borderRadius: 8 }}
+                      onPress={() => setShowDocDatePicker(false)}
+                    >
+                      <Text style={{ fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#6FAFF2' }}>Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
 
               <Text style={styles.fieldLabel}>Notes (optional)</Text>

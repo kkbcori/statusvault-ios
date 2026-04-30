@@ -314,10 +314,18 @@ export const ProfileScreen: React.FC<{ visible?: boolean; onClose?: () => void }
 
   // Mobile: use Modal
   return (
-    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
+    <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen" onRequestClose={onClose}>
       <View style={s.overlay}>
-        <TouchableOpacity style={s.backdrop} onPress={onClose} activeOpacity={1} />
-        <View style={s.panel}>{content}</View>
+        {/* Backdrop sibling — absolute fill behind the panel; tappable to dismiss */}
+        <TouchableOpacity
+          style={StyleSheet.absoluteFillObject as any}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        {/* Panel — plain View so children (ScrollView, TextInputs) render correctly */}
+        <View style={s.panel}>
+          {content}
+        </View>
       </View>
     </Modal>
   );
@@ -330,11 +338,13 @@ const s = StyleSheet.create({
   // compiles to a positioned div, not a native fullscreen view.
   overlay:    IS_WEB
     ? { position: 'fixed' as any, inset: 0, zIndex: 2000, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)' } as any
-    : { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)', padding: 16 } as any,
+    : { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(3,8,18,0.80)', padding: 16 } as any,
   backdrop:   IS_WEB
     ? { position: 'absolute' as any, inset: 0 } as any
     : { ...StyleSheet.absoluteFillObject } as any,
-  panel:      { width: '100%', maxWidth: 520, maxHeight: '90%' as any, backgroundColor: '#0C1A34', borderRadius: 16, overflow: 'hidden', display: 'flex' as any, flexDirection: 'column', zIndex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', ...Platform.select({ web: { boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any }) } as any,
+  panel:      IS_WEB
+    ? { width: '100%', maxWidth: 520, maxHeight: '90%' as any, backgroundColor: '#0C1A34', borderRadius: 16, overflow: 'hidden', display: 'flex' as any, flexDirection: 'column', zIndex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', boxShadow: '0 24px 64px rgba(0,0,0,0.55)' } as any
+    : { width: '100%', maxWidth: 520, height: '88%', backgroundColor: '#0C1A34', borderRadius: 16, overflow: 'hidden', flexDirection: 'column', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' } as any,
   sheet:      { flex: 1, display: 'flex' as any, flexDirection: 'column' },
   header:     { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderBottomWidth: 1, borderBottomColor: 'transparent' },
   headerTitle:{ fontSize: 16, fontFamily: 'Inter_700Bold', color: '#F0F4FF' },
