@@ -83,6 +83,7 @@ export const FamilyScreen: React.FC = () => {
   const [showDocDatePicker,setShowDocDatePicker]= useState(false);
   const [docNotes,         setDocNotes]         = useState('');
   const [docSearch,        setDocSearch]        = useState('');
+  const [expandedDocCountries, setExpandedDocCountries] = useState<Set<string>>(new Set(['US']));
   const [docTemplateError, setDocTemplateError] = useState(false);
   const [docExpiryError,   setDocExpiryError]   = useState(false);
   const [docLimitError,    setDocLimitError]    = useState(false);
@@ -581,41 +582,91 @@ export const FamilyScreen: React.FC = () => {
                     </TouchableOpacity>
                   )}
                 </View>
-                {DOCUMENT_TEMPLATES
-                  .filter(t => {
-                    const q = docSearch.toLowerCase().trim();
-                    return !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
-                  })
-                  .map((t) => {
-                  const alreadyAdded = selectedMember
-                    ? getMemberDocs(selectedMember).some((d) => d.templateId === t.id)
-                    : false;
-                  const isSelected = docTemplateId === t.id;
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      style={[styles.templateRow, isSelected && styles.templateRowActive, alreadyAdded && styles.templateRowAdded]}
-                      onPress={() => { if (!alreadyAdded) { setDocTemplateId(t.id); setDocTemplateError(false); } }}
-                      activeOpacity={alreadyAdded ? 1 : 0.75}
-                    >
-                      <Text style={{ fontSize: 18, marginRight: 10, opacity: alreadyAdded ? 0.4 : 1 }}>{t.icon}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.templateLabel, isSelected && { color: '#6FAFF2' }, alreadyAdded && { color: 'rgba(240,244,255,0.35)', textDecorationLine: 'line-through' as any }]}>{t.label}</Text>
-                        {alreadyAdded && <Text style={styles.alreadyAddedText}>✓ Already added</Text>}
-                      </View>
-                      {isSelected && <Ionicons name="checkmark-circle" size={16} color={'#6FAFF2'} style={{ marginLeft: 'auto' as any }} />}
-                      {alreadyAdded && !isSelected && <Ionicons name="checkmark-circle" size={16} color={'rgba(240,244,255,0.35)'} style={{ marginLeft: 'auto' as any }} />}
-                    </TouchableOpacity>
-                  );
-                })}
-                {DOCUMENT_TEMPLATES.filter(t => {
+                {(() => {
                   const q = docSearch.toLowerCase().trim();
-                  return !q || t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
-                }).length === 0 && (
-                  <View style={{ alignItems: 'center', paddingVertical: 24 }}>
-                    <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.text3 }}>No results for "{docSearch}"</Text>
-                  </View>
-                )}
+                  const countries: Array<{ code: string; flag: string; name: string }> = [
+                    { code: 'US', flag: '🇺🇸', name: 'United States' },
+                    { code: 'CA', flag: '🇨🇦', name: 'Canada' },
+                    { code: 'AU', flag: '🇦🇺', name: 'Australia' },
+                  ];
+                  let totalVisible = 0;
+                  const blocks = countries.map(({ code, flag, name }) => {
+                    const ctyTemplates = DOCUMENT_TEMPLATES.filter((t: any) => (t.country ?? 'US') === code);
+                    if (ctyTemplates.length === 0) return null;
+                    const matched = q === '' ? ctyTemplates : ctyTemplates.filter((t: any) =>
+                      t.label.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+                    );
+                    if (matched.length === 0) return null;
+                    totalVisible += matched.length;
+                    const isExpanded = q !== '' || expandedDocCountries.has(code);
+                    return (
+                      <View key={code}>
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            if (q !== '') return; // search auto-expands; don't toggle
+                            setExpandedDocCountries(prev => {
+                              const next = new Set(prev);
+                              if (next.has(code)) next.delete(code); else next.add(code);
+                              return next;
+                            });
+                          }}
+                          style={styles.countryBanner}
+                        >
+                          <Text style={styles.countryBannerFlag}>{flag}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.countryBannerTitle}>{name}</Text>
+                            <Text style={styles.countryBannerSub}>
+                              {q !== '' ? `${matched.length} matches` : `${matched.length} document${matched.length === 1 ? '' : 's'}`}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                            size={18}
+                            color="rgba(240,244,255,0.50)"
+                          />
+                        </TouchableOpacity>
+                        {isExpanded && matched.map((t: any) => {
+                          const alreadyAdded = selectedMember
+                            ? getMemberDocs(selectedMember).some((d) => d.templateId === t.id)
+                            : false;
+                          const isSelected = docTemplateId === t.id;
+                          return (
+                            <TouchableOpacity
+                              key={t.id}
+                              style={[styles.templateRow, isSelected && styles.templateRowActive, alreadyAdded && styles.templateRowAdded]}
+                              onPress={() => { if (!alreadyAdded) { setDocTemplateId(t.id); setDocTemplateError(false); } }}
+                              activeOpacity={alreadyAdded ? 1 : 0.75}
+                            >
+                              <Text style={{ fontSize: 18, marginRight: 10, opacity: alreadyAdded ? 0.5 : 1 }}>{t.icon}</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={[
+                                  styles.templateLabel,
+                                  isSelected && { color: '#6FAFF2' },
+                                  alreadyAdded && { color: 'rgba(240,244,255,0.55)' },
+                                ]}>
+                                  {t.label}
+                                </Text>
+                                {alreadyAdded && <Text style={styles.alreadyAddedText}>✓ Already added</Text>}
+                              </View>
+                              {isSelected && <Ionicons name="checkmark-circle" size={16} color={'#6FAFF2'} style={{ marginLeft: 'auto' as any }} />}
+                              {alreadyAdded && !isSelected && <Ionicons name="checkmark-circle" size={16} color={'rgba(76,217,138,0.65)'} style={{ marginLeft: 'auto' as any }} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    );
+                  });
+                  if (totalVisible === 0 && q !== '') {
+                    return (
+                      <View style={{ alignItems: 'center', paddingVertical: 24 }}>
+                        <Ionicons name="search-outline" size={28} color="rgba(240,244,255,0.30)" />
+                        <Text style={{ fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.text3, marginTop: 10 }}>No results for "{docSearch}"</Text>
+                      </View>
+                    );
+                  }
+                  return blocks;
+                })()}
               </ScrollView>
 
               <View style={styles.fieldLabelRow}>
@@ -839,7 +890,11 @@ const styles = StyleSheet.create({
   docSearchInput:   { flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: colors.text1 },
   templateRow:      { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: 'transparent' },
   templateRowActive:{ backgroundColor: 'rgba(59,139,232,0.14)' },
-  templateRowAdded: { backgroundColor: '#F9FAFB', opacity: 0.7 },
+  templateRowAdded: { backgroundColor: 'rgba(255,255,255,0.03)', opacity: 0.7 },
+  countryBanner:      { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: spacing.lg, paddingVertical: 12, marginTop: 6, marginBottom: 4, marginHorizontal: 8, backgroundColor: 'rgba(59,139,232,0.08)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(111,175,242,0.18)' },
+  countryBannerFlag:  { fontSize: 22 },
+  countryBannerTitle: { fontSize: 13, fontFamily: 'Inter_700Bold', color: '#F0F4FF', letterSpacing: 0.3 },
+  countryBannerSub:   { fontSize: 11, fontFamily: 'Inter_400Regular', color: 'rgba(240,244,255,0.55)', marginTop: 1 },
   alreadyAddedText: { fontSize: 10, fontFamily: 'Inter_400Regular', color: '#4CD98A', marginTop: 1 },
   templateLabel:    { fontSize: 13, fontFamily: 'Inter_500Medium', color: colors.text1, flex: 1 },
   saveBtn:          { borderRadius: radius.lg, overflow: 'hidden' },
