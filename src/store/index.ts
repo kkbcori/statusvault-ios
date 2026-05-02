@@ -1093,12 +1093,18 @@ export const useStore = create<AppStore>()(
             try { await get().syncFromCloud(); } catch {}
           } else {
             // First check returned no session — but Supabase's AsyncStorage hydration
-            // is async and may not have completed yet. Retry once after 500ms.
-            setTimeout(async () => {
+            // is async and may not have completed yet. On cold app start (especially
+            // on iOS after a few hours), hydration can take longer than 500ms. So we
+            // poll every 500ms for up to 5 seconds. As soon as we find a session,
+            // sync it to the store and stop polling.
+            let attempts = 0;
+            const maxAttempts = 10; // 10 × 500ms = 5 seconds
+            const poll = async () => {
+              attempts++;
               try {
                 const { data } = await supabase.auth.getSession();
                 if (data?.session?.user && !get().authUser) {
-                  dlog('[initAuth] delayed retry found session — syncing to store');
+                  dlog('[initAuth] delayed retry found session at attempt', attempts, '— syncing to store');
                   set({
                     authUser: {
                       id: data.session.user.id,
@@ -1109,9 +1115,17 @@ export const useStore = create<AppStore>()(
                     showWelcomeModal: false,
                     isGuestMode: false,
                   });
+                  try { await get().syncFromCloud(); } catch {}
+                  return; // stop polling
                 }
               } catch {}
-            }, 500);
+              if (attempts < maxAttempts && !get().authUser) {
+                setTimeout(poll, 500);
+              } else if (attempts >= maxAttempts) {
+                dlog('[initAuth] polling exhausted after', attempts, 'attempts — no session found');
+              }
+            };
+            setTimeout(poll, 500);
           }
         } catch (e: any) {
           try { dlog('[initAuth] getSession threw:', e?.message ?? e); } catch {}

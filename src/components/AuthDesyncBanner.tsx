@@ -25,6 +25,7 @@ export const AuthDesyncBanner: React.FC<Props> = ({ onOpenDebug }) => {
   const authUser = useStore(s => s.authUser);
   const [supabaseEmail, setSupabaseEmail] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
+  const [autoFixAttempted, setAutoFixAttempted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,7 +33,36 @@ export const AuthDesyncBanner: React.FC<Props> = ({ onOpenDebug }) => {
       try {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
-        setSupabaseEmail(data?.session?.user?.email ?? null);
+        const sbEmail = data?.session?.user?.email ?? null;
+        const sbUser  = data?.session?.user;
+        const storeAuth = useStore.getState().authUser;
+
+        // AUTO-FIX: if Supabase has a session but the store doesn't, try to fix
+        // it silently first. This catches the cold-start race condition where
+        // Supabase's AsyncStorage hydration finishes after our initAuth retries
+        // give up. Most users will never see the warning banner because of this.
+        if (sbUser && !storeAuth && !autoFixAttempted) {
+          dlog('[desync-banner] auto-fix: setting authUser from Supabase session');
+          useStore.setState({
+            authUser: {
+              id: sbUser.id,
+              email: sbUser.email!,
+              createdAt: sbUser.created_at,
+            },
+            isGuestMode: false,
+            hasOnboarded: true,
+            showWelcomeModal: false,
+          });
+          setAutoFixAttempted(true);
+          // Don't set checked yet — give the store a moment to update so the
+          // next render sees authUser !== null and we never show the banner
+          setTimeout(() => {
+            if (!cancelled) { setSupabaseEmail(sbEmail); setChecked(true); }
+          }, 200);
+          return;
+        }
+
+        setSupabaseEmail(sbEmail);
         setChecked(true);
       } catch {
         if (cancelled) return;
@@ -40,10 +70,13 @@ export const AuthDesyncBanner: React.FC<Props> = ({ onOpenDebug }) => {
         setChecked(true);
       }
     };
-    check();
-    const interval = setInterval(check, 3000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
+    // Wait 5 seconds before the first check. This gives the cold-start
+    // hydration path (Supabase AsyncStorage + initAuth polling retry) time
+    // to complete normally without the banner ever appearing.
+    const initialDelay = setTimeout(check, 5000);
+    const interval = setInterval(check, 5000);
+    return () => { cancelled = true; clearTimeout(initialDelay); clearInterval(interval); };
+  }, [autoFixAttempted]);
 
   if (!checked) return null;
 
