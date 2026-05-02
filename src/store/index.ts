@@ -1479,8 +1479,10 @@ export const useStore = create<AppStore>()(
           window.location.hash.includes('token_hash=')    ||  // legacy OTP hash
           window.location.hash.includes('access_token='));    // legacy implicit
 
-        // Check Supabase session synchronously — logged-in users never see welcome modal
-        const hasSupabaseSession = (() => {
+        // Web: synchronously check Supabase's localStorage entry so logged-in
+        // users never see the welcome modal flash.
+        const hasSupabaseSessionWeb = (() => {
+          if (typeof localStorage === 'undefined') return false;
           try {
             const raw = localStorage.getItem(SUPABASE_SESSION_KEY);
             if (!raw) return false;
@@ -1489,7 +1491,18 @@ export const useStore = create<AppStore>()(
           } catch { return false; }
         })();
 
-        const suppressWelcome = hasMagicToken || hasSupabaseSession;
+        // Native: localStorage is undefined and AsyncStorage's API is async, so
+        // we can't synchronously read Supabase's auth-token here. Instead we
+        // trust our own persisted authUser — if it's set, the user was logged
+        // in last session, so suppress the welcome screen during the cold-start
+        // render window. If they've actually been signed out since (revoked
+        // token, deleted account, etc.), the initAuth polling retries and the
+        // AppState foreground listener will clear authUser within ~5 seconds.
+        // This eliminates the welcome-screen flash without requiring any new
+        // disk writes — it just uses Zustand persist's existing data.
+        const hasPersistedAuthUser = !!state?.authUser;
+
+        const suppressWelcome = hasMagicToken || hasSupabaseSessionWeb || hasPersistedAuthUser;
         useStore.setState({
           _hasHydrated: true,
           ...(suppressWelcome ? { hasOnboarded: true, showWelcomeModal: false } : {}),
@@ -1520,6 +1533,13 @@ export const useStore = create<AppStore>()(
         cloudBackupEnabled: s.cloudBackupEnabled,
         notifications: s.notifications,
         lastAutoBackupAt: s.lastAutoBackupAt,
+        // Persist authUser metadata (id, email, createdAt — no JWT) so the cold-start
+        // rehydrate handler can synchronously detect logged-in state and suppress
+        // the welcome screen flash. The actual auth token stays in Supabase's own
+        // AsyncStorage (managed by the SDK) and is the source of truth — if it's
+        // expired/revoked, the AppState listener and initAuth polling will clear
+        // authUser from the store within seconds.
+        authUser: s.authUser,
       }),
     }
   )
