@@ -17,6 +17,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography } from '../theme';
 import { useStore } from '../store';
+import { dlog } from '../utils/debugLog';
 import { RootStackParamList, MainTabParamList } from '../types';
 
 import { DashboardScreen, DocumentsScreen, SettingsScreen } from '../screens';
@@ -369,6 +370,15 @@ const MainTabs: React.FC = () => {
 
   const showAuthModal    = useStore((s) => s.showAuthModal);
   const showWelcomeModal = useStore((s) => s.showWelcomeModal);
+
+  // DIAGNOSTIC: log every change to showWelcomeModal so we can find what's
+  // toggling it on cold start. Remove this once the flash is fixed.
+  React.useEffect(() => {
+    try {
+      const s = useStore.getState();
+      dlog('[welcome-modal-changed] visible=', showWelcomeModal, 'authUser=', s.authUser?.email ?? 'null', 'hasOnboarded=', s.hasOnboarded);
+    } catch {}
+  }, [showWelcomeModal]);
   const setGuestMode     = useStore((s) => s.setGuestMode);
   const setOnboarded     = useStore((s) => s.setOnboarded);
   const openAuthModal    = useStore((s) => s.openAuthModal);
@@ -387,6 +397,12 @@ const MainTabs: React.FC = () => {
     if (!hasHydrated) return;
     if (hasMagicLinkInUrl) return;
 
+    try { dlog('[welcome-decide] effect started, hasHydrated=true'); } catch {}
+    try {
+      const s0 = useStore.getState();
+      dlog('[welcome-decide] initial state — authUser:', s0.authUser?.email ?? 'null', 'hasOnboarded:', s0.hasOnboarded, 'showWelcomeModal:', s0.showWelcomeModal, 'isGuestMode:', s0.isGuestMode);
+    } catch {}
+
     let cancelled = false;
 
     // Don't decide synchronously — Supabase's getSession() in initAuth is still
@@ -401,6 +417,7 @@ const MainTabs: React.FC = () => {
 
       if (s.authUser) {
         // Logged in (either persisted from disk or freshly populated by initAuth)
+        try { dlog('[welcome-decide] attempt', attempt, '— authUser found:', s.authUser.email, '— suppressing welcome'); } catch {}
         useStore.setState({ hasOnboarded: true, showWelcomeModal: false });
         return;
       }
@@ -419,7 +436,10 @@ const MainTabs: React.FC = () => {
         } catch {}
       }
 
-      if (s.hasOnboarded) return; // user already onboarded — don't show welcome
+      if (s.hasOnboarded) {
+        try { dlog('[welcome-decide] attempt', attempt, '— hasOnboarded=true, no welcome needed'); } catch {}
+        return; // user already onboarded — don't show welcome
+      }
 
       // Not logged in yet, but might be logging in. Poll for up to ~5 seconds.
       // 17 attempts × 300ms ≈ 5s. After that, conclude they're a fresh user
@@ -427,6 +447,7 @@ const MainTabs: React.FC = () => {
       if (attempt < 17) {
         setTimeout(() => decide(attempt + 1), 300);
       } else {
+        try { dlog('[welcome-decide] 5s elapsed with no auth — SHOWING WELCOME MODAL'); } catch {}
         useStore.setState({ showWelcomeModal: true });
       }
     };
