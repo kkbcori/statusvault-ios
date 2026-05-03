@@ -301,6 +301,12 @@ export const useStore = create<AppStore>()(
     (set, get) => ({
       _hasHydrated: false,
       hasOnboarded: false,
+      // Critical: explicit `false` here prevents iOS RN Modal from rendering on
+      // first paint. Without it, this value is `undefined`, and iOS Modal treats
+      // undefined != false — it briefly renders the modal during the cold-start
+      // window before our welcome-decide effect runs and sets it to false.
+      // This is the actual root cause of the welcome-screen flash bug.
+      showWelcomeModal: false,
       profileSetupShown: false,
       pendingProfileSetup: false,
       cloudBackupEnabled: false,  // default OFF — user explicitly opts in for premium privacy
