@@ -387,26 +387,52 @@ const MainTabs: React.FC = () => {
     if (!hasHydrated) return;
     if (hasMagicLinkInUrl) return;
 
-    const hasSupabaseSession = (() => {
-      if (Platform.OS !== 'web') {
-        return !!useStore.getState().authUser;
+    let cancelled = false;
+
+    // Don't decide synchronously — Supabase's getSession() in initAuth is still
+    // running and might find a session within the next few seconds. If we set
+    // showWelcomeModal: true now, logged-in users see a flash. So we POLL for
+    // up to 5 seconds: every 300ms, check if authUser has been populated. If
+    // it shows up, suppress welcome. If 5 seconds pass with no auth, then
+    // and only then show welcome.
+    const decide = (attempt: number) => {
+      if (cancelled) return;
+      const s = useStore.getState();
+
+      if (s.authUser) {
+        // Logged in (either persisted from disk or freshly populated by initAuth)
+        useStore.setState({ hasOnboarded: true, showWelcomeModal: false });
+        return;
       }
-      try {
-        const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SUPABASE_SESSION_KEY) : null;
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        return !!(parsed?.access_token || parsed?.session?.access_token);
-      } catch { return false; }
-    })();
 
-    if (hasSupabaseSession) {
-      useStore.setState({ hasOnboarded: true, showWelcomeModal: false });
-      return;
-    }
+      // Web: synchronously check Supabase's localStorage entry as a second source
+      if (Platform.OS === 'web') {
+        try {
+          const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SUPABASE_SESSION_KEY) : null;
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.access_token || parsed?.session?.access_token) {
+              useStore.setState({ hasOnboarded: true, showWelcomeModal: false });
+              return;
+            }
+          }
+        } catch {}
+      }
 
-    if (useStore.getState().hasOnboarded) return;
+      if (s.hasOnboarded) return; // user already onboarded — don't show welcome
 
-    useStore.setState({ showWelcomeModal: true });
+      // Not logged in yet, but might be logging in. Poll for up to ~5 seconds.
+      // 17 attempts × 300ms ≈ 5s. After that, conclude they're a fresh user
+      // and show the welcome modal.
+      if (attempt < 17) {
+        setTimeout(() => decide(attempt + 1), 300);
+      } else {
+        useStore.setState({ showWelcomeModal: true });
+      }
+    };
+    decide(0);
+
+    return () => { cancelled = true; };
   }, [hasHydrated]);
 
   const authModalMessage = useStore((s) => s.authModalMessage);
