@@ -186,7 +186,7 @@ const LoadingSplash: React.FC = () => {
   }, [logoOpacity]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
       <Animated.View style={{
         width: 84, height: 84, borderRadius: 24,
         backgroundColor: 'rgba(59,139,232,0.10)',
@@ -201,10 +201,17 @@ const LoadingSplash: React.FC = () => {
           resizeMode="contain"
         />
       </Animated.View>
-      <Text style={{ fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 }}>
+      <Text
+        style={{ fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5, textAlign: 'center' }}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         Status<Text style={{ color: '#6FAFF2' }}>Vault</Text>
       </Text>
-      <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.40)', marginTop: 10, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+      <Text
+        style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.40)', marginTop: 10, letterSpacing: 1.2, textTransform: 'uppercase', textAlign: 'center' }}
+        numberOfLines={1}
+      >
         Loading your documents
       </Text>
     </View>
