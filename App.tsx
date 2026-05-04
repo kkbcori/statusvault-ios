@@ -10,7 +10,7 @@
 import 'react-native-get-random-values';
 
 import React, { useEffect, useState } from 'react';
-import { StatusBar, LogBox, View, Text, Platform, Image } from 'react-native';
+import { StatusBar, LogBox, View, Text, Platform, Image, Animated } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -166,30 +166,50 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// ─── Loading splash — on-brand (static, animation reverted pending crash investigation) ──
-const LoadingSplash: React.FC = () => (
-  <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center' }}>
-    <View style={{
-      width: 84, height: 84, borderRadius: 24,
-      backgroundColor: 'rgba(59,139,232,0.10)',
-      borderWidth: 1, borderColor: 'rgba(59,139,232,0.25)',
-      alignItems: 'center', justifyContent: 'center',
-      marginBottom: 20,
-    }}>
-      <Image
-        source={require('./assets/logo-transparent.png')}
-        style={{ width: 52, height: 52 }}
-        resizeMode="contain"
-      />
+// ─── Loading splash — on-brand with simple logo fade-in ────────
+const LoadingSplash: React.FC = () => {
+  // Single animation: logo container fades in from 0 → 1 opacity over 600ms.
+  // Deliberately minimal:
+  //  - one Animated.Value, one timing call, no loops, no cleanup
+  //  - useNativeDriver: false (JS-driven) — bulletproof on cold start path
+  //  - only the logo container is animated; text remains static
+  // If this ever crashes, the issue is environmental (Hermes/RN bridge),
+  // not the animation pattern itself.
+  const logoOpacity = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(logoOpacity, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: false,
+    }).start();
+  }, [logoOpacity]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View style={{
+        width: 84, height: 84, borderRadius: 24,
+        backgroundColor: 'rgba(59,139,232,0.10)',
+        borderWidth: 1, borderColor: 'rgba(59,139,232,0.25)',
+        alignItems: 'center', justifyContent: 'center',
+        marginBottom: 20,
+        opacity: logoOpacity,
+      }}>
+        <Image
+          source={require('./assets/logo-transparent.png')}
+          style={{ width: 52, height: 52 }}
+          resizeMode="contain"
+        />
+      </Animated.View>
+      <Text style={{ fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 }}>
+        Status<Text style={{ color: '#6FAFF2' }}>Vault</Text>
+      </Text>
+      <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.40)', marginTop: 10, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+        Loading your documents
+      </Text>
     </View>
-    <Text style={{ fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 }}>
-      Status<Text style={{ color: '#6FAFF2' }}>Vault</Text>
-    </Text>
-    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.40)', marginTop: 10, letterSpacing: 1.2, textTransform: 'uppercase' }}>
-      Loading your documents
-    </Text>
-  </View>
-);
+  );
+};
 
 export default function App() {
   const pinEnabled    = useStore((s) => s.pinEnabled);
