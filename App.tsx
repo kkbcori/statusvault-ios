@@ -10,7 +10,7 @@
 import 'react-native-get-random-values';
 
 import React, { useEffect, useState } from 'react';
-import { StatusBar, LogBox, View, Text, Platform, Image, Animated, Easing } from 'react-native';
+import { StatusBar, LogBox, View, Text, Platform, Image } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   useFonts,
@@ -166,97 +166,30 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// ─── Loading splash — on-brand, animated ─────────────────────
-const LoadingSplash: React.FC = () => {
-  // Logo scale pulse — gentle, ~1.4s loop, subtle to feel alive not jittery
-  const pulse  = React.useRef(new Animated.Value(0)).current;
-  // Glow ring opacity pulse offset from scale for layered effect
-  const glow   = React.useRef(new Animated.Value(0)).current;
-  // Three loading dots that fade in/out in sequence
-  const dot1   = React.useRef(new Animated.Value(0.3)).current;
-  const dot2   = React.useRef(new Animated.Value(0.3)).current;
-  const dot3   = React.useRef(new Animated.Value(0.3)).current;
-
-  React.useEffect(() => {
-    // Logo pulse: 1.0 → 1.06 → 1.0, soft ease, looping
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Glow ring: opacity 0.4 → 0.9 → 0.4, slightly out of phase with pulse for depth
-    Animated.loop(
-      Animated.sequence([
-        Animated.delay(200),
-        Animated.timing(glow, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(glow, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Dots: classic three-dot ellipsis loader
-    const dotAnim = (dot: Animated.Value, delay: number) => Animated.loop(
-      Animated.sequence([
-        Animated.delay(delay),
-        Animated.timing(dot, { toValue: 1, duration: 350, useNativeDriver: true }),
-        Animated.timing(dot, { toValue: 0.3, duration: 350, useNativeDriver: true }),
-        Animated.delay(700 - delay),
-      ])
-    );
-    dotAnim(dot1, 0).start();
-    dotAnim(dot2, 200).start();
-    dotAnim(dot3, 400).start();
-  }, [pulse, glow, dot1, dot2, dot3]);
-
-  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
-  const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] });
-  const glowScale   = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
-
-  return (
-    <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 120, height: 120, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
-        {/* Animated glow ring behind the logo */}
-        <Animated.View
-          style={{
-            position: 'absolute',
-            width: 120, height: 120, borderRadius: 32,
-            backgroundColor: 'rgba(59,139,232,0.18)',
-            borderWidth: 1, borderColor: 'rgba(59,139,232,0.30)',
-            opacity: glowOpacity,
-            transform: [{ scale: glowScale }],
-          }}
-        />
-        {/* Inner solid container with the logo, gently pulsing */}
-        <Animated.View
-          style={{
-            width: 84, height: 84, borderRadius: 24,
-            backgroundColor: 'rgba(59,139,232,0.12)',
-            borderWidth: 1, borderColor: 'rgba(59,139,232,0.30)',
-            alignItems: 'center', justifyContent: 'center',
-            transform: [{ scale }],
-          }}
-        >
-          <Image
-            source={require('./assets/logo-transparent.png')}
-            style={{ width: 52, height: 52 }}
-            resizeMode="contain"
-          />
-        </Animated.View>
-      </View>
-
-      <Text style={{ fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 }}>
-        Status<Text style={{ color: '#6FAFF2' }}>Vault</Text>
-      </Text>
-
-      <View style={{ flexDirection: 'row', gap: 6, marginTop: 18, alignItems: 'center', height: 12 } as any}>
-        <Animated.View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#6FAFF2', opacity: dot1 }} />
-        <Animated.View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#6FAFF2', opacity: dot2 }} />
-        <Animated.View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#6FAFF2', opacity: dot3 }} />
-      </View>
+// ─── Loading splash — on-brand (static, animation reverted pending crash investigation) ──
+const LoadingSplash: React.FC = () => (
+  <View style={{ flex: 1, backgroundColor: '#050B1C', alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{
+      width: 84, height: 84, borderRadius: 24,
+      backgroundColor: 'rgba(59,139,232,0.10)',
+      borderWidth: 1, borderColor: 'rgba(59,139,232,0.25)',
+      alignItems: 'center', justifyContent: 'center',
+      marginBottom: 20,
+    }}>
+      <Image
+        source={require('./assets/logo-transparent.png')}
+        style={{ width: 52, height: 52 }}
+        resizeMode="contain"
+      />
     </View>
-  );
-};
+    <Text style={{ fontSize: 22, fontFamily: 'Inter_800ExtraBold', color: '#F0F4FF', letterSpacing: -0.5 }}>
+      Status<Text style={{ color: '#6FAFF2' }}>Vault</Text>
+    </Text>
+    <Text style={{ fontSize: 11, fontFamily: 'Inter_500Medium', color: 'rgba(240,244,255,0.40)', marginTop: 10, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+      Loading your documents
+    </Text>
+  </View>
+);
 
 export default function App() {
   const pinEnabled    = useStore((s) => s.pinEnabled);
@@ -265,11 +198,6 @@ export default function App() {
   const _hasHydrated  = useStore((s) => s._hasHydrated);
   const [isLocked,  setIsLocked]  = useState(true);
   const [authReady, setAuthReady] = useState(false);
-
-  // Fade-in animation when the splash dismisses and the main app appears.
-  // Smooths the transition from splash → dashboard so it doesn't feel like
-  // a hard cut. Animation runs once, on first ready state.
-  const mainFade = React.useRef(new Animated.Value(0)).current;
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold,
@@ -367,31 +295,16 @@ export default function App() {
     );
   }
 
-  // Trigger fade-in when we're past the loading gate.
-  // useEffect ensures it only fires once we're actually rendering main content.
-  React.useEffect(() => {
-    if (fontsLoaded && authReady && _hasHydrated) {
-      Animated.timing(mainFade, {
-        toValue: 1,
-        duration: 280,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [fontsLoaded, authReady, _hasHydrated, mainFade]);
-
   return (
     <ErrorBoundary>
-      <Animated.View style={{ flex: 1, opacity: mainFade }}>
-        <SafeAreaProvider>
-          {Platform.OS !== 'web' && (
-            <StatusBar barStyle="light-content" backgroundColor={colors.backgroundDeep} />
-          )}
-          <DialogProvider>
-            <AppNavigator />
-          </DialogProvider>
-        </SafeAreaProvider>
-      </Animated.View>
+      <SafeAreaProvider>
+        {Platform.OS !== 'web' && (
+          <StatusBar barStyle="light-content" backgroundColor={colors.backgroundDeep} />
+        )}
+        <DialogProvider>
+          <AppNavigator />
+        </DialogProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }
